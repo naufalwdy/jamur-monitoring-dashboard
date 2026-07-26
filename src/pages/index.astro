@@ -1,0 +1,14 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import RealtimeDashboard from '../components/RealtimeDashboard';
+import RefreshButton from '../components/RefreshButton.astro';
+---
+
+<Layout>
+  <Header />
+  <main class="w-full px-6 py-8 flex flex-col gap-8 flex-1 pb-32">
+    <RealtimeDashboard client:load />
+  </main>
+  <RefreshButton />
+</Layout>

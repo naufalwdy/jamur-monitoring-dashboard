@@ -1,0 +1,21 @@
+---
+interface Props {
+  title: string;
+  icon: string;
+  iconColorClass: string;
+  isActive: boolean;
+  opacityClass?: string;
+}
+
+const { title, icon, iconColorClass, isActive, opacityClass = "" } = Astro.props;
+const statusDotClass = isActive ? "bg-secondary" : "bg-outline";
+---
+<div class={`bg-surface-container-lowest rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-3 flex items-center justify-between ${opacityClass}`}>
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center">
+      <span class={`material-symbols-outlined ${iconColorClass} text-sm`} data-icon={icon}>{icon}</span>
+    </div>
+    <span class="font-label-sm text-label-sm text-on-surface font-semibold">{title}</span>
+  </div>
+  <div class={`w-2 h-2 rounded-full ${statusDotClass}`}></div>
+</div>
