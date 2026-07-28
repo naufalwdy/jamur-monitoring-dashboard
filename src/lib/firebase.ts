@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBf2Mnai6Iw50ENkJuNPX47yPZ3FVFfMYI",
+  apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
   authDomain: "monitoring-jamur-51ece.firebaseapp.com",
   databaseURL: "https://monitoring-jamur-51ece-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "monitoring-jamur-51ece",
