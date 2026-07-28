@@ -9,30 +9,13 @@ import SpeedInsights from '@vercel/speed-insights/astro';
   <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Mushroom Room Monitoring</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    <script is:inline>
-      const theme = (() => {
-        if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
-          return localStorage.getItem('theme');
-        }
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          return 'dark';
-        }
-        return 'light';
-      })();
-      if (theme === 'dark') document.documentElement.classList.add('dark');
-    </script>
+    <title>Jamur Core — Monitoring Dashboard</title>
+    <meta name="description" content="Sistem monitoring dan kontrol real-time untuk budidaya jamur berbasis IoT dengan Firebase." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
   </head>
-  <body class="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-900 dark:text-slate-100 font-sans overflow-x-hidden flex flex-col selection:bg-blue-100 selection:text-blue-900 dark:selection:bg-blue-900 dark:selection:text-blue-100 relative transition-colors duration-300">
-    <!-- Subtle elegant background gradient and mesh -->
-    <div class="absolute inset-0 -z-10 h-full w-full bg-white dark:bg-slate-950 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] transition-colors duration-300"></div>
-    <div class="absolute inset-0 -z-10 h-full w-full bg-gradient-to-br from-blue-50/50 via-transparent to-green-50/50 dark:from-blue-900/10 dark:via-transparent dark:to-emerald-900/10 transition-colors duration-300"></div>
-
-    <div class="w-full max-w-4xl mx-auto flex flex-col min-h-screen relative z-0">
-      <slot />
-    </div>
+  <body>
+    <slot />
     <Analytics />
     <SpeedInsights />
   </body>
