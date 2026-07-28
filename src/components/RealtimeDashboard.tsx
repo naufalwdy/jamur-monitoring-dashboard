@@ -15,7 +15,11 @@ interface LogRow { date: string; co2: string; temp: string; hum: string; evap: s
 type Page = 'dashboard' | 'logs' | 'settings';
 
 // === Sidebar ===
-function Sidebar({ activePage, onNavigate }: { activePage: Page; onNavigate: (p: Page) => void }) {
+function Sidebar({ activePage, onNavigate, isCollapsed, setCollapsed, isMobileOpen, setMobileOpen }: { 
+  activePage: Page; onNavigate: (p: Page) => void;
+  isCollapsed: boolean; setCollapsed: (c: boolean) => void;
+  isMobileOpen: boolean; setMobileOpen: (o: boolean) => void;
+}) {
   const navItems: { id: Page; icon: string; label: string }[] = [
     { id: 'dashboard', icon: 'grid_view', label: 'Overview Dashboard' },
     { id: 'logs', icon: 'history_edu', label: 'Cultivation Logs' },
@@ -23,51 +27,90 @@ function Sidebar({ activePage, onNavigate }: { activePage: Page; onNavigate: (p:
   ];
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-72 z-50 flex flex-col pt-8 border-r"
-      style={{ background: 'color-mix(in srgb, var(--surface-container-low) 60%, transparent)', backdropFilter: 'blur(20px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
-      <div className="px-8 mb-10 flex items-center gap-3">
-        <span className="text-2xl">🍄</span>
-        <span className="text-xl font-semibold tracking-tight" style={{ color: 'var(--on-surface)' }}>Monitoring Jamur</span>
-      </div>
-      <nav className="flex-1 px-4 space-y-1">
-        {navItems.map(item => {
-          const isActive = activePage === item.id;
-          return (
-            <button key={item.id} onClick={() => onNavigate(item.id)}
-              className="w-full flex items-center px-4 py-3 rounded-xl transition-all text-left"
-              style={{
-                background: isActive ? 'var(--primary-container)' : 'transparent',
-                color: isActive ? 'var(--on-primary-container)' : 'var(--on-surface-variant)',
-                fontWeight: isActive ? 600 : 400,
-              }}
-              onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--surface-container-high)'; e.currentTarget.style.color = 'var(--on-surface)'; }}}
-              onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--on-surface-variant)'; }}}
-            >
-              <span className="material-symbols-outlined mr-3 text-[20px]">{item.icon}</span>
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
-    </aside>
+    <>
+      {/* Mobile Overlay Background */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
+      )}
+      
+      {/* Sidebar Container */}
+      <aside className={`fixed left-0 top-0 h-full z-50 flex flex-col pt-6 border-r transition-all duration-300 ${
+        isCollapsed ? 'w-20' : 'w-72'
+      } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+        style={{ background: 'color-mix(in srgb, var(--surface-container-low) 80%, transparent)', backdropFilter: 'blur(20px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
+        
+        {/* Header & Collapse Button */}
+        <div className={`px-4 mb-8 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+          <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
+            <span className="text-2xl min-w-[32px] text-center flex-shrink-0">🍄</span>
+            {!isCollapsed && <span className="text-xl font-semibold tracking-tight" style={{ color: 'var(--on-surface)' }}>Jamur Core</span>}
+          </div>
+          {/* Desktop Collapse Toggle */}
+          <button onClick={() => setCollapsed(!isCollapsed)} className="hidden lg:flex w-8 h-8 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-[var(--on-surface-variant)]">
+            <span className="material-symbols-outlined text-[20px]">{isCollapsed ? 'chevron_right' : 'chevron_left'}</span>
+          </button>
+          {/* Mobile Close Button */}
+          <button onClick={() => setMobileOpen(false)} className="flex lg:hidden w-8 h-8 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-[var(--on-surface-variant)]">
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        <nav className="flex-1 px-3 space-y-2 overflow-y-auto overflow-x-hidden">
+          {navItems.map(item => {
+            const isActive = activePage === item.id;
+            return (
+              <button key={item.id} onClick={() => { onNavigate(item.id); setMobileOpen(false); }}
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3 rounded-xl transition-all text-left relative group`}
+                style={{
+                  background: isActive ? 'var(--primary-container)' : 'transparent',
+                  color: isActive ? 'var(--on-primary-container)' : 'var(--on-surface-variant)',
+                  fontWeight: isActive ? 600 : 400,
+                }}
+                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--surface-container-high)'; e.currentTarget.style.color = 'var(--on-surface)'; }}}
+                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--on-surface-variant)'; }}}
+              >
+                <span className={`material-symbols-outlined text-[22px] flex-shrink-0 ${isCollapsed ? '' : 'mr-3'}`}>{item.icon}</span>
+                {!isCollapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
+                
+                {/* Tooltip for collapsed state */}
+                {isCollapsed && (
+                  <div className="absolute left-14 bg-[var(--inverse-surface)] text-[var(--inverse-on-surface)] text-xs font-semibold px-2 py-1 rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                    {item.label}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+    </>
   );
 }
 
 // === Top Header ===
-function TopHeader({ isConnected, toggleTheme, isDark }: { isConnected: boolean; toggleTheme: () => void; isDark: boolean; }) {
+function TopHeader({ isConnected, toggleTheme, isDark, isCollapsed, setMobileOpen }: { 
+  isConnected: boolean; toggleTheme: () => void; isDark: boolean; 
+  isCollapsed: boolean; setMobileOpen: (o: boolean) => void; 
+}) {
   return (
-    <header className="fixed top-0 left-72 right-0 h-16 z-40 px-6 flex items-center justify-between border-b"
-      style={{ background: 'color-mix(in srgb, var(--surface) 70%, transparent)', backdropFilter: 'blur(20px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
+    <header className={`fixed top-0 right-0 h-16 z-40 px-4 md:px-6 flex items-center justify-between border-b transition-all duration-300 left-0 ${isCollapsed ? 'lg:left-20' : 'lg:left-72'}`}
+      style={{ background: 'color-mix(in srgb, var(--surface) 80%, transparent)', backdropFilter: 'blur(20px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
       <div className="flex items-center gap-3">
-        <span className="text-lg font-semibold" style={{ color: 'var(--on-surface)' }}>Jamur Monitoring Dashboard</span>
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: isConnected ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : 'color-mix(in srgb, var(--error) 10%, transparent)' }}>
-          <div className="w-2 h-2 rounded-full" style={{ background: isConnected ? 'var(--primary)' : 'var(--error)', animation: isConnected ? 'pulse 2s infinite' : 'none' }} />
-          <span className="text-xs font-semibold tracking-wider uppercase" style={{ color: isConnected ? 'var(--primary)' : 'var(--error)' }}>
+        {/* Hamburger Menu (Mobile Only) */}
+        <button onClick={() => setMobileOpen(true)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[var(--on-surface)]">
+          <span className="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+
+        <span className="text-base md:text-lg font-semibold truncate max-w-[150px] sm:max-w-xs" style={{ color: 'var(--on-surface)' }}>Monitoring Dashboard</span>
+        
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0" style={{ background: isConnected ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : 'color-mix(in srgb, var(--error) 10%, transparent)' }}>
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: isConnected ? 'var(--primary)' : 'var(--error)', animation: isConnected ? 'pulse 2s infinite' : 'none' }} />
+          <span className="text-[10px] md:text-xs font-semibold tracking-wider uppercase" style={{ color: isConnected ? 'var(--primary)' : 'var(--error)' }}>
             {isConnected ? 'LIVE' : 'Offline'}
           </span>
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4 shrink-0">
         {/* Theme Toggle Button */}
         <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
           style={{ background: 'var(--surface-container-high)', color: 'var(--on-surface-variant)' }}
@@ -80,7 +123,7 @@ function TopHeader({ isConnected, toggleTheme, isDark }: { isConnected: boolean;
           <div className="text-xs font-semibold" style={{ color: 'var(--on-surface)' }}>Cultivator Admin</div>
           <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--on-surface-variant)' }}>Main Facility</div>
         </div>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--primary)' }}>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--primary)' }}>
           <span className="material-symbols-outlined text-[18px]" style={{ color: 'var(--on-primary)' }}>person</span>
         </div>
       </div>
@@ -395,6 +438,10 @@ export default function RealtimeDashboard() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [activeKpi, setActiveKpi] = useState<'co2' | 'temp' | 'hum' | 'evap'>('co2');
   
+  // Layout states
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Theme state
   const [isDark, setIsDark] = useState(true);
 
@@ -489,14 +536,21 @@ export default function RealtimeDashboard() {
   }));
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'var(--background)' }}>
-      <Sidebar activePage={activePage} onNavigate={setActivePage} />
+    <div className="flex min-h-screen w-full overflow-x-hidden" style={{ background: 'var(--background)' }}>
+      <Sidebar 
+        activePage={activePage} onNavigate={setActivePage} 
+        isCollapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed}
+        isMobileOpen={isMobileMenuOpen} setMobileOpen={setIsMobileMenuOpen}
+      />
 
-      <div className="pl-72 flex-1 flex flex-col min-h-screen">
-        <TopHeader isConnected={isConnected} toggleTheme={toggleTheme} isDark={isDark} />
+      <div className={`flex-1 flex flex-col min-h-screen w-full transition-all duration-300 pl-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
+        <TopHeader 
+          isConnected={isConnected} toggleTheme={toggleTheme} isDark={isDark} 
+          isCollapsed={isSidebarCollapsed} setMobileOpen={setIsMobileMenuOpen} 
+        />
 
-        <main className="relative pt-16 flex-1 flex flex-col" style={{ background: 'var(--surface)' }}>
-          <div className="flex flex-col w-full px-6 pb-12 gap-6 pt-6 flex-1">
+        <main className="relative pt-16 flex-1 flex flex-col w-full" style={{ background: 'var(--surface)' }}>
+          <div className="flex flex-col w-full px-4 md:px-6 pb-12 gap-6 pt-6 flex-1 max-w-full">
 
             {activePage === 'dashboard' && (
               <div className="page-fade-in flex flex-col gap-6">
@@ -525,15 +579,15 @@ export default function RealtimeDashboard() {
                 </div>
 
                 {/* 2. Charts & Actuators Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                   {/* Chart Section */}
-                  <div className="glass-card rounded-xl p-6 lg:col-span-8 flex flex-col min-h-[350px]">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>{paramKeys[activeKpi]} Trends</h2>
+                  <div className="glass-card rounded-xl p-4 md:p-6 xl:col-span-8 flex flex-col min-h-[350px]">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
+                      <h2 className="text-lg md:text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>{paramKeys[activeKpi]} Trends</h2>
                       <select 
                         value={activeKpi} 
                         onChange={(e) => setActiveKpi(e.target.value as any)}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none cursor-pointer"
                         style={{ background: 'var(--surface-container-high)', color: 'var(--on-surface)', border: '1px solid var(--outline-variant)' }}
                       >
                         <option value="co2">CO₂ Concentration</option>
@@ -543,18 +597,18 @@ export default function RealtimeDashboard() {
                       </select>
                     </div>
                     
-                    <div className="flex-1 w-full relative">
+                    <div className="flex-1 w-full relative min-h-[250px]">
                       {formattedChartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={formattedChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                          <LineChart data={formattedChartData} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--outline-variant)" opacity={0.3} vertical={false} />
-                            <XAxis dataKey="time" stroke="var(--on-surface-variant)" fontSize={11} tickMargin={10} minTickGap={20} />
-                            <YAxis stroke="var(--on-surface-variant)" fontSize={11} tickMargin={10} domain={['auto', 'auto']} />
+                            <XAxis dataKey="time" stroke="var(--on-surface-variant)" fontSize={10} tickMargin={10} minTickGap={20} />
+                            <YAxis stroke="var(--on-surface-variant)" fontSize={10} tickMargin={10} domain={['auto', 'auto']} />
                             <Tooltip 
-                              contentStyle={{ backgroundColor: 'var(--inverse-surface)', borderColor: 'transparent', borderRadius: '8px', color: 'var(--inverse-on-surface)' }}
+                              contentStyle={{ backgroundColor: 'var(--inverse-surface)', borderColor: 'transparent', borderRadius: '8px', color: 'var(--inverse-on-surface)', fontSize: '12px' }}
                               itemStyle={{ color: paramColors[activeKpi], fontWeight: 'bold' }}
                             />
-                            <Line type="monotone" dataKey="value" stroke={paramColors[activeKpi]} strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, fill: paramColors[activeKpi], stroke: '#fff', strokeWidth: 2 }} />
+                            <Line type="monotone" dataKey="value" stroke={paramColors[activeKpi]} strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 5, fill: paramColors[activeKpi], stroke: '#fff', strokeWidth: 2 }} />
                           </LineChart>
                         </ResponsiveContainer>
                       ) : (
@@ -566,7 +620,7 @@ export default function RealtimeDashboard() {
                   </div>
 
                   {/* Actuators Section (Stacked vertically on desktop right side) */}
-                  <div className="lg:col-span-4 flex flex-col gap-4">
+                  <div className="xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
                     <ActuatorCard id="blower" title="Blower" icon="mode_fan" act={actuators.blower} onCommand={sendCommand} />
                     <ActuatorCard id="compressor" title="Compressor" icon="heat_pump" act={actuators.compressor} onCommand={sendCommand} />
                     <ActuatorCard id="exhaust" title="Exhaust Fan" icon="toys" act={actuators.exhaust} onCommand={sendCommand} />
@@ -590,11 +644,11 @@ export default function RealtimeDashboard() {
                     </button>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead>
                         <tr style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 30%, transparent)' }}>
                           {['Timestamp', 'CO₂ (ppm)', 'Suhu (°C)', 'Kelembaban (%)', 'Evap (°C)'].map((h, i) => (
-                            <th key={i} className={`py-3 px-6 text-xs font-semibold uppercase tracking-wider ${i > 0 ? 'text-right' : ''}`}
+                            <th key={i} className={`py-3 px-4 md:px-6 text-xs font-semibold uppercase tracking-wider ${i > 0 ? 'text-right' : ''}`}
                               style={{ color: 'var(--on-surface-variant)' }}>{h}</th>
                           ))}
                         </tr>
@@ -605,11 +659,11 @@ export default function RealtimeDashboard() {
                             style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 8%, transparent)' }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-container-lowest) 50%, transparent)'; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                            <td className="py-3 px-6 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
-                            <td className="py-3 px-6 text-right font-medium">{row.co2}</td>
-                            <td className="py-3 px-6 text-right font-medium">{row.temp}</td>
-                            <td className="py-3 px-6 text-right font-medium">{row.hum}</td>
-                            <td className="py-3 px-6 text-right" style={{ color: 'var(--on-surface-variant)' }}>{row.evap}</td>
+                            <td className="py-3 px-4 md:px-6 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
+                            <td className="py-3 px-4 md:px-6 text-right font-medium">{row.co2}</td>
+                            <td className="py-3 px-4 md:px-6 text-right font-medium">{row.temp}</td>
+                            <td className="py-3 px-4 md:px-6 text-right font-medium">{row.hum}</td>
+                            <td className="py-3 px-4 md:px-6 text-right" style={{ color: 'var(--on-surface-variant)' }}>{row.evap}</td>
                           </tr>
                         ))}
                         {recentLogs.length === 0 && (
