@@ -27,7 +27,7 @@ function Sidebar({ activePage, onNavigate }: { activePage: Page; onNavigate: (p:
       style={{ background: 'color-mix(in srgb, var(--surface-container-low) 60%, transparent)', backdropFilter: 'blur(20px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
       <div className="px-8 mb-10 flex items-center gap-3">
         <span className="text-2xl">🍄</span>
-        <span className="text-xl font-semibold tracking-tight" style={{ color: 'var(--on-surface)' }}>Jamur Core</span>
+        <span className="text-xl font-semibold tracking-tight" style={{ color: 'var(--on-surface)' }}>Monitoring Jamur</span>
       </div>
       <nav className="flex-1 px-4 space-y-1">
         {navItems.map(item => {
