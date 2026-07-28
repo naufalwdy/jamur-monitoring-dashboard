@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+import Analytics from '@vercel/analytics/astro';
+import SpeedInsights from '@vercel/speed-insights/astro';
 ---
 
 <!DOCTYPE html>
@@ -31,5 +33,7 @@ import '../styles/global.css';
     <div class="w-full max-w-4xl mx-auto flex flex-col min-h-screen relative z-0">
       <slot />
     </div>
+    <Analytics />
+    <SpeedInsights />
   </body>
 </html>
