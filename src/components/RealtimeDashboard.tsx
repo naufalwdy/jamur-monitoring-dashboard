@@ -43,7 +43,7 @@ function Sidebar({ activePage, onNavigate, isCollapsed, setCollapsed, isMobileOp
         <div className={`px-4 mb-8 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
             <span className="text-2xl min-w-[32px] text-center flex-shrink-0">🍄</span>
-            {!isCollapsed && <span className="text-xl font-semibold tracking-tight" style={{ color: 'var(--on-surface)' }}>Jamur Core</span>}
+            {!isCollapsed && <span className="text-xl font-semibold tracking-tight" style={{ color: 'var(--on-surface)' }}>Monitoring Jamur</span>}
           </div>
           {/* Desktop Collapse Toggle */}
           <button onClick={() => setCollapsed(!isCollapsed)} className="hidden lg:flex w-8 h-8 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-[var(--on-surface-variant)]">
