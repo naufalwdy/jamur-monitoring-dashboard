@@ -60,7 +60,7 @@ function Sidebar({ activePage, onNavigate, isCollapsed, setCollapsed, isMobileOp
             const isActive = activePage === item.id;
             return (
               <button key={item.id} onClick={() => { onNavigate(item.id); setMobileOpen(false); }}
-                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3 rounded-xl transition-all text-left relative group`}
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3 rounded-xl smooth-transition text-left relative group hover:scale-[1.02] active:scale-[0.98]`}
                 style={{
                   background: isActive ? 'var(--primary-container)' : 'transparent',
                   color: isActive ? 'var(--on-primary-container)' : 'var(--on-surface-variant)',
@@ -93,8 +93,8 @@ function TopHeader({ isConnected, toggleTheme, isDark, isCollapsed, setMobileOpe
   isCollapsed: boolean; setMobileOpen: (o: boolean) => void; 
 }) {
   return (
-    <header className={`fixed top-0 right-0 h-16 z-40 px-4 md:px-6 flex items-center justify-between border-b transition-all duration-300 left-0 ${isCollapsed ? 'lg:left-20' : 'lg:left-72'}`}
-      style={{ background: 'color-mix(in srgb, var(--surface) 80%, transparent)', backdropFilter: 'blur(20px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
+    <header className={`fixed top-0 right-0 h-16 z-40 px-4 md:px-6 flex items-center justify-between border-b spring-transition left-0 ${isCollapsed ? 'lg:left-20' : 'lg:left-72'}`}
+      style={{ background: 'color-mix(in srgb, var(--surface) 80%, transparent)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
       <div className="flex items-center gap-3">
         {/* Hamburger Menu (Mobile Only) */}
         <button onClick={() => setMobileOpen(true)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[var(--on-surface)]">
@@ -112,7 +112,7 @@ function TopHeader({ isConnected, toggleTheme, isDark, isCollapsed, setMobileOpe
       </div>
       <div className="flex items-center gap-2 md:gap-4 shrink-0">
         {/* Theme Toggle Button */}
-        <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+        <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition hover:scale-110 active:scale-90"
           style={{ background: 'var(--surface-container-high)', color: 'var(--on-surface-variant)' }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--on-surface)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--on-surface-variant)'}>
@@ -146,7 +146,7 @@ function KpiCard({ label, value, unit, icon, iconColor, accent, trend, trendLabe
 
   return (
     <button onClick={onClick}
-      className={`glass-card rounded-xl p-4 text-left flex flex-col gap-2 relative overflow-hidden group focus:outline-none${isActive ? ' kpi-active' : ''}`}>
+      className={`glass-card rounded-xl p-4 text-left flex flex-col gap-2 relative overflow-hidden group focus:outline-none${isActive ? ' kpi-active scale-[1.02]' : ''}`}>
       <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full blur-xl transition-colors"
         style={{ background: `color-mix(in srgb, ${accent} 15%, transparent)` }} />
       
@@ -192,8 +192,8 @@ function ActuatorCard({ id, title, icon, act, onCommand }: {
   const isOn = act.state;
 
   return (
-    <div className="rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden"
-      style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 50%, transparent)', border: '1px solid color-mix(in srgb, var(--outline-variant) 15%, transparent)' }}>
+    <div className="rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden smooth-transition hover:scale-[1.01]"
+      style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 50%, transparent)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, var(--outline-variant) 15%, transparent)', boxShadow: 'inset 0 1px 0 0 color-mix(in srgb, var(--surface-container-lowest) 40%, transparent)' }}>
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center"
@@ -212,13 +212,13 @@ function ActuatorCard({ id, title, icon, act, onCommand }: {
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--on-surface-variant)' }}>Mode</span>
         <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: 'var(--surface-container)' }}>
           <button onClick={() => onCommand(id, 'auto', isOn)}
-            className="px-3 py-1 text-xs rounded-md transition-all font-semibold"
-            style={{ background: isAuto ? 'var(--surface-container-lowest)' : 'transparent', color: isAuto ? 'var(--primary)' : 'var(--on-surface-variant)', boxShadow: isAuto ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+            className="px-3 py-1 text-xs rounded-md smooth-transition font-semibold hover:scale-105 active:scale-95"
+            style={{ background: isAuto ? 'var(--surface-container-lowest)' : 'transparent', color: isAuto ? 'var(--primary)' : 'var(--on-surface-variant)', boxShadow: isAuto ? '0 2px 4px rgba(0,0,0,0.1)' : 'none' }}>
             Auto
           </button>
           <button onClick={() => onCommand(id, 'manual', isOn)}
-            className="px-3 py-1 text-xs rounded-md transition-all font-semibold"
-            style={{ background: !isAuto ? 'var(--surface-container-lowest)' : 'transparent', color: !isAuto ? 'var(--primary)' : 'var(--on-surface-variant)', boxShadow: !isAuto ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
+            className="px-3 py-1 text-xs rounded-md smooth-transition font-semibold hover:scale-105 active:scale-95"
+            style={{ background: !isAuto ? 'var(--surface-container-lowest)' : 'transparent', color: !isAuto ? 'var(--primary)' : 'var(--on-surface-variant)', boxShadow: !isAuto ? '0 2px 4px rgba(0,0,0,0.1)' : 'none' }}>
             Manual
           </button>
         </div>
@@ -227,7 +227,7 @@ function ActuatorCard({ id, title, icon, act, onCommand }: {
       <div className="flex justify-between items-center">
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: isAuto ? 'var(--on-surface-variant)' : 'var(--on-surface)' }}>Power</span>
         <button onClick={() => !isAuto && onCommand(id, 'manual', !isOn)} disabled={isAuto}
-          className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+          className="relative inline-flex h-6 w-11 items-center rounded-full smooth-transition active:scale-90"
           style={{ background: isOn ? (isAuto ? 'color-mix(in srgb, var(--primary) 50%, gray)' : 'var(--primary)') : 'var(--surface-container-high)', cursor: isAuto ? 'not-allowed' : 'pointer', opacity: isAuto ? 0.6 : 1 }}>
           <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm"
             style={{ transform: isOn ? 'translateX(24px)' : 'translateX(4px)' }} />
@@ -273,7 +273,7 @@ function DataLogViewer() {
 
   return (
     <div className="page-fade-in flex flex-col gap-6">
-      <div className="glass-card rounded-xl overflow-hidden">
+      <div className="glass-card rounded-xl overflow-hidden hover:translate-y-0 hover:scale-100">
         <div className="p-6 border-b flex justify-between items-end flex-wrap gap-4"
           style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
           <div>
