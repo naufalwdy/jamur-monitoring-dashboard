@@ -45,7 +45,5 @@ A professional, real-time IoT dashboard built for automated mushroom cultivation
 ## 🔒 Security
 
 Actuator controls and setpoint settings are secured behind a frontend gate. 
-- **Username**: `Petani`
-- **Password**: `jamurku`
 
 *Note: For production, ensure your Firebase Database Rules are properly configured to restrict write access from unauthorized clients.*
