@@ -42,6 +42,9 @@ Pemberian tegangan yang benar sangat penting agar sensor bekerja akurat dan mikr
 
 *(Catatan Relay: Sangat disarankan mengambil suplai tegangan 5V dari adaptor eksternal khusus untuk board relay. Jangan mengambil tegangan 5V langsung dari pin board Arduino Mega karena tarikan arus dari banyak relay dapat menyebabkan Arduino me-restart / kehilangan tenaga secara tiba-tiba).*
 
+**Catatan Khusus Kompressor AC:**
+> Kompressor AC dikendalikan menggunakan kontaktor dan relay dengan rangkaian pengunci (*latching circuit*). Mikrokontroler hanya mengirimkan sinyal pemicu sekejap (*pulse*) ke pin Start (D26) untuk menyalakan, dan ke pin Stop (D27) untuk mematikan.
+
 ---
 
 ## 2. ESP32 (Gateway WiFi & Web Server)
