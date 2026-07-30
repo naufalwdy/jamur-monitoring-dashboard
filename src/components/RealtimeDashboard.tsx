@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ref, onValue, set, push } from "firebase/database";
+import { ref, onValue, set, push, query, limitToLast } from "firebase/database";
 import { db } from "../lib/firebase";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -13,7 +13,7 @@ interface ActuatorsData { blower: ActuatorData; compressor: ActuatorData; exhaus
 interface Setpoints { tempMin: number; tempMax: number; humMin: number; humMax: number; co2Min: number; co2Max: number; evapMin: number; evapMax: number; }
 interface LogRow { date: string; co2: string; temp: string; hum: string; evap: string; }
 
-type Page = 'dashboard' | 'logs' | 'settings';
+type Page = 'dashboard' | 'logs' | 'admin';
 
 // === Fluid Island Nav ===
 function FluidIslandNav({ activePage, onNavigate, isConnected, toggleTheme, isDark }: { 
@@ -23,7 +23,7 @@ function FluidIslandNav({ activePage, onNavigate, isConnected, toggleTheme, isDa
   const navItems: { id: Page; icon: string; label: string }[] = [
     { id: 'dashboard', icon: 'grid_view', label: 'Dashboard' },
     { id: 'logs', icon: 'history_edu', label: 'Logs' },
-    { id: 'settings', icon: 'settings', label: 'Settings' },
+    { id: 'admin', icon: 'admin_panel_settings', label: 'Admin' },
   ];
 
   return (
@@ -81,6 +81,72 @@ function FluidIslandNav({ activePage, onNavigate, isConnected, toggleTheme, isDa
     </motion.nav>
   );
 }
+
+// === Admin Login Component ===
+function AdminLogin({ onLogin }: { onLogin: () => void }) {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (user === 'Petani' && pass === 'jamurku') {
+      setError(false);
+      onLogin();
+    } else {
+      setError(true);
+      setTimeout(() => setError(false), 800);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-[60vh] page-fade-in">
+      <motion.form 
+        onSubmit={handleSubmit}
+        animate={error ? { x: [-10, 10, -10, 10, 0] } : {}}
+        transition={{ duration: 0.4 }}
+        className="glass-card rounded-2xl p-8 w-full max-w-sm flex flex-col gap-6"
+      >
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'color-mix(in srgb, var(--primary) 15%, transparent)' }}>
+            <span className="material-symbols-outlined text-3xl" style={{ color: 'var(--primary)' }}>lock</span>
+          </div>
+          <h2 className="text-2xl font-bold" style={{ color: 'var(--on-surface)' }}>Admin Access</h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--on-surface-variant)' }}>Silakan login untuk mengatur alat</p>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--on-surface-variant)' }}>Username</label>
+            <input type="text" value={user} onChange={e => setUser(e.target.value)} required
+              className="w-full rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all"
+              style={{ background: 'var(--surface-container)', border: '1px solid var(--outline-variant)', color: 'var(--on-surface)' }}
+              onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--outline-variant)'; e.target.style.boxShadow = 'none'; }}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--on-surface-variant)' }}>Password</label>
+            <input type="password" value={pass} onChange={e => setPass(e.target.value)} required
+              className="w-full rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all"
+              style={{ background: 'var(--surface-container)', border: '1px solid var(--outline-variant)', color: 'var(--on-surface)' }}
+              onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--outline-variant)'; e.target.style.boxShadow = 'none'; }}
+            />
+          </div>
+          {error && <p className="text-xs text-center font-semibold" style={{ color: 'var(--error)' }}>Kredensial tidak valid!</p>}
+        </div>
+
+        <button type="submit"
+          className="w-full py-3 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg mt-2"
+          style={{ background: 'var(--primary)', color: 'var(--on-primary)', boxShadow: 'color-mix(in srgb, var(--primary) 30%, transparent) 0 4px 16px' }}>
+          Login
+        </button>
+      </motion.form>
+    </div>
+  );
+}
+
 
 
 // === KPI Card ===
@@ -200,7 +266,7 @@ function DataLogViewer() {
 
   useEffect(() => {
     setLoading(true); setError('');
-    const logRef = ref(db, 'logs/' + logType);
+    const logRef = query(ref(db, 'logs/' + logType), limitToLast(200));
     const unsubscribe = onValue(logRef, (snapshot) => {
       setLoading(false);
       if (snapshot.exists()) {
@@ -389,6 +455,7 @@ function SetpointsViewer({ currentSetpoints, onSave }: { currentSetpoints: Setpo
 export default function RealtimeDashboard() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [activeKpi, setActiveKpi] = useState<'co2' | 'temp' | 'hum' | 'evap'>('co2');
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Layout states
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -412,11 +479,23 @@ export default function RealtimeDashboard() {
   // Recent 10m logs for dashboard charts
   const [recentLogs, setRecentLogs] = useState<LogRow[]>([]);
 
-  // Initialize theme
+  // Initialize theme and auth
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains('dark');
     setIsDark(isDarkMode);
+    if (sessionStorage.getItem('isAdmin') === 'true') setIsAdmin(true);
   }, []);
+
+  const handleLogin = () => {
+    setIsAdmin(true);
+    sessionStorage.setItem('isAdmin', 'true');
+  };
+
+  const handleLogout = () => {
+    setIsAdmin(false);
+    sessionStorage.removeItem('isAdmin');
+    setActivePage('dashboard');
+  };
 
   const toggleTheme = () => {
     const html = document.documentElement;
@@ -448,7 +527,7 @@ export default function RealtimeDashboard() {
     const unsubConn = onValue(connRef, (snap) => setIsConnected(snap.val() === true));
     
     // Fetch recent 10m logs for chart and preview table
-    const log10mRef = ref(db, 'logs/10m');
+    const log10mRef = query(ref(db, 'logs/10m'), limitToLast(200));
     const unsubLog = onValue(log10mRef, (snapshot) => {
       if (snapshot.exists()) {
         const parsed: LogRow[] = [];
@@ -514,19 +593,11 @@ export default function RealtimeDashboard() {
               {/* Asymmetrical Bento Grid */}
               <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-min gap-4 md:gap-6">
                 
-                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                  <KpiCard label="CO₂ Level" value={Math.round(sensors.co2).toString()} unit="ppm" icon="air" iconColor="var(--primary)" accent="var(--primary)" status={getCo2Status()} currentVal={sensors.co2} min={setpoints.co2Min} max={setpoints.co2Max} delay={0.1} isActive={activeKpi === 'co2'} onClick={() => setActiveKpi('co2')} />
-                  <KpiCard label="Room Temp" value={sensors.temp.toFixed(1)} unit="°C" icon="device_thermostat" iconColor="var(--secondary)" accent="var(--secondary)" status={getTempStatus()} currentVal={sensors.temp} min={setpoints.tempMin} max={setpoints.tempMax} delay={0.15} isActive={activeKpi === 'temp'} onClick={() => setActiveKpi('temp')} />
-                  <KpiCard label="Humidity" value={Math.round(sensors.hum).toString()} unit="%" icon="water_drop" iconColor="var(--tertiary)" accent="var(--tertiary)" status={getHumStatus()} currentVal={sensors.hum} min={setpoints.humMin} max={setpoints.humMax} delay={0.2} isActive={activeKpi === 'hum'} onClick={() => setActiveKpi('hum')} />
-                  <KpiCard label="Evaporator" value={sensors.evap.toFixed(1)} unit="°C" icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)" status={getEvapStatus()} currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax} delay={0.25} isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
-                </div>
-
-                {/* Actuators Bento Stack */}
-                <div className="md:col-span-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-4 md:gap-6">
-                  <ActuatorCard id="mistmaker" title="Mist Maker" icon="water" act={actuators.mistmaker} onCommand={sendCommand} delay={0.3} />
-                  <ActuatorCard id="blower" title="Circulation" icon="mode_fan" act={actuators.blower} onCommand={sendCommand} delay={0.35} />
-                  <ActuatorCard id="exhaust" title="Exhaust Fan" icon="wind_power" act={actuators.exhaust} onCommand={sendCommand} delay={0.4} />
-                  <ActuatorCard id="compressor" title="Compressor" icon="ac_unit" act={actuators.compressor} onCommand={sendCommand} delay={0.45} />
+                <div className="md:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  <KpiCard label="CO₂ Level" value={Math.round(sensors.co2).toString()} unit="ppm" icon="air" iconColor="var(--primary)" accent="var(--primary)" status={getCo2Status()} currentVal={sensors.co2} min={setpoints.co2Min} max={setpoints.co2Max} isActive={activeKpi === 'co2'} onClick={() => setActiveKpi('co2')} />
+                  <KpiCard label="Room Temp" value={sensors.temp.toFixed(1)} unit="°C" icon="device_thermostat" iconColor="var(--secondary)" accent="var(--secondary)" status={getTempStatus()} currentVal={sensors.temp} min={setpoints.tempMin} max={setpoints.tempMax} isActive={activeKpi === 'temp'} onClick={() => setActiveKpi('temp')} />
+                  <KpiCard label="Humidity" value={Math.round(sensors.hum).toString()} unit="%" icon="water_drop" iconColor="var(--tertiary)" accent="var(--tertiary)" status={getHumStatus()} currentVal={sensors.hum} min={setpoints.humMin} max={setpoints.humMax} isActive={activeKpi === 'hum'} onClick={() => setActiveKpi('hum')} />
+                  <KpiCard label="Evaporator" value={sensors.evap.toFixed(1)} unit="°C" icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)" status={getEvapStatus()} currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax} isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
                 </div>
                 
                 {/* Chart Bento Box */}
@@ -573,9 +644,47 @@ export default function RealtimeDashboard() {
             </motion.div>
           )}
 
-          {activePage === 'settings' && (
-            <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="pt-8">
-              <SetpointsViewer currentSetpoints={setpoints} onSave={saveSetpoints} />
+          {activePage === 'admin' && (
+            <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="pt-8">
+              {!isAdmin ? (
+                <AdminLogin onLogin={handleLogin} />
+              ) : (
+                <div className="flex flex-col gap-8">
+                  <div className="flex justify-between items-end flex-wrap gap-4">
+                    <div>
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="inline-block px-3 py-1 rounded-full border border-white/10 bg-black/20 text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--primary)] mb-4 shadow-sm backdrop-blur-md">
+                        Admin Mode
+                      </motion.div>
+                      <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-extrabold tracking-tighter" style={{ color: 'var(--on-surface)' }}>
+                        Control Panel
+                      </motion.h1>
+                    </div>
+                    <button onClick={handleLogout}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-colors shadow-sm"
+                      style={{ background: 'color-mix(in srgb, var(--error) 15%, transparent)', color: 'var(--error)' }}>
+                      <span className="material-symbols-outlined text-base">logout</span> Keluar Admin
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Actuators Bento Stack */}
+                    <div className="glass-card rounded-xl p-6 h-fit">
+                      <div className="mb-6">
+                        <h2 className="text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>Manual Override</h2>
+                        <p className="text-sm mt-1" style={{ color: 'var(--on-surface-variant)' }}>Kontrol langsung terhadap sistem kelistrikan dan relay aktuator.</p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        <ActuatorCard id="mistmaker" title="Mist Maker" icon="water" act={actuators.mistmaker} onCommand={sendCommand} />
+                        <ActuatorCard id="blower" title="Circulation" icon="mode_fan" act={actuators.blower} onCommand={sendCommand} />
+                        <ActuatorCard id="exhaust" title="Exhaust Fan" icon="wind_power" act={actuators.exhaust} onCommand={sendCommand} />
+                        <ActuatorCard id="compressor" title="Compressor" icon="ac_unit" act={actuators.compressor} onCommand={sendCommand} />
+                      </div>
+                    </div>
+
+                    <SetpointsViewer currentSetpoints={setpoints} onSave={saveSetpoints} />
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
