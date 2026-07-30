@@ -42,8 +42,14 @@ Pemberian tegangan yang benar sangat penting agar sensor bekerja akurat dan mikr
 
 *(Catatan Relay: Sangat disarankan mengambil suplai tegangan 5V dari adaptor eksternal khusus untuk board relay. Jangan mengambil tegangan 5V langsung dari pin board Arduino Mega karena tarikan arus dari banyak relay dapat menyebabkan Arduino me-restart / kehilangan tenaga secara tiba-tiba).*
 
-**Catatan Khusus Kompressor AC:**
-> Kompressor AC dikendalikan menggunakan kontaktor dan relay dengan rangkaian pengunci (*latching circuit*). Mikrokontroler hanya mengirimkan sinyal pemicu sekejap (*pulse*) ke pin Start (D26) untuk menyalakan, dan ke pin Stop (D27) untuk mematikan.
+**Catatan Khusus Kompressor AC (Rangkaian Latching):**
+> Kompressor AC membutuhkan daya yang sangat besar, sehingga dikendalikan menggunakan **Kontaktor Magnetik** yang dikombinasikan dengan dua buah modul relay untuk membentuk rangkaian pengunci (*latching circuit*). Hal ini dilakukan agar mikrokontroler tidak perlu terus-menerus menahan relay dalam kondisi aktif (yang dapat merusak relay jika dilakukan dalam jangka panjang).
+> 
+> **Prinsip Kerja & Skema Pengkabelan Latching:**
+> 1. **Relay Start (D26):** Terminal *Normally Open (NO)* pada relay ini dihubungkan secara seri dengan koil kontaktor (A1/A2). Ketika mikrokontroler mengirimkan pulsa `HIGH` sesaat ke D26, relay menutup dan menyetrum koil kontaktor sehingga kompressor menyala.
+> 2. **Pengunci (Auxiliary Contact):** Kontak bantu *Normally Open (NO)* yang ada pada bodi kontaktor dihubungkan secara paralel (berseberangan) dengan terminal NO dari **Relay Start**. Begitu kontaktor menyala, kontak bantu ini akan tertutup dan mengambil alih aliran listrik ke koil kontaktor, sehingga koil tetap menyala meskipun Relay Start sudah kembali mati (pulsa selesai).
+> 3. **Relay Stop (D27):** Terminal *Normally Closed (NC)* pada relay ini dipasang secara seri di jalur utama yang mensuplai listrik ke koil kontaktor (sebelum masuk ke Relay Start dan kontak bantu). 
+> 4. Ketika mikrokontroler ingin mematikan AC, ia mengirimkan pulsa sesaat ke D27. Relay Stop akan aktif sesaat (memutus kontak NC-nya menjadi terbuka), sehingga aliran listrik ke koil kontaktor terputus total. Kontaktor akan mati, kontak bantunya kembali terbuka, dan rangkaian *latching* terlepas.
 
 ---
 
