@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ref, onValue, set, push } from "firebase/database";
 import { db } from "../lib/firebase";
 import {
@@ -14,122 +15,73 @@ interface LogRow { date: string; co2: string; temp: string; hum: string; evap: s
 
 type Page = 'dashboard' | 'logs' | 'settings';
 
-// === Sidebar ===
-function Sidebar({ activePage, onNavigate, isCollapsed, setCollapsed, isMobileOpen, setMobileOpen }: { 
+// === Fluid Island Nav ===
+function FluidIslandNav({ activePage, onNavigate, isConnected, toggleTheme, isDark }: { 
   activePage: Page; onNavigate: (p: Page) => void;
-  isCollapsed: boolean; setCollapsed: (c: boolean) => void;
-  isMobileOpen: boolean; setMobileOpen: (o: boolean) => void;
+  isConnected: boolean; toggleTheme: () => void; isDark: boolean; 
 }) {
   const navItems: { id: Page; icon: string; label: string }[] = [
-    { id: 'dashboard', icon: 'grid_view', label: 'Overview Dashboard' },
-    { id: 'logs', icon: 'history_edu', label: 'Cultivation Logs' },
-    { id: 'settings', icon: 'settings', label: 'System Settings' },
+    { id: 'dashboard', icon: 'grid_view', label: 'Dashboard' },
+    { id: 'logs', icon: 'history_edu', label: 'Logs' },
+    { id: 'settings', icon: 'settings', label: 'Settings' },
   ];
 
   return (
-    <>
-      {/* Mobile Overlay Background */}
-      {isMobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
-      )}
+    <motion.nav 
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+      className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 md:gap-4 px-4 py-3 rounded-full"
+      style={{ 
+        background: 'color-mix(in srgb, var(--surface) 60%, transparent)', 
+        backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)',
+        border: '1px solid color-mix(in srgb, var(--outline-variant) 20%, transparent)',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.1)'
+      }}>
       
-      {/* Sidebar Container */}
-      <aside className={`fixed left-0 top-0 h-full z-50 flex flex-col pt-6 border-r transition-all duration-300 ${
-        isCollapsed ? 'w-20' : 'w-72'
-      } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
-        style={{ background: 'color-mix(in srgb, var(--surface-container-low) 80%, transparent)', backdropFilter: 'blur(20px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
-        
-        {/* Header & Collapse Button */}
-        <div className={`px-4 mb-8 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-          <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-            <span className="text-2xl min-w-[32px] text-center flex-shrink-0">🍄</span>
-            {!isCollapsed && <span className="text-xl font-semibold tracking-tight" style={{ color: 'var(--on-surface)' }}>Monitoring Jamur</span>}
-          </div>
-          {/* Desktop Collapse Toggle */}
-          <button onClick={() => setCollapsed(!isCollapsed)} className="hidden lg:flex w-8 h-8 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-[var(--on-surface-variant)]">
-            <span className="material-symbols-outlined text-[20px]">{isCollapsed ? 'chevron_right' : 'chevron_left'}</span>
-          </button>
-          {/* Mobile Close Button */}
-          <button onClick={() => setMobileOpen(false)} className="flex lg:hidden w-8 h-8 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-[var(--on-surface-variant)]">
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
-        </div>
-
-        <nav className="flex-1 px-3 space-y-2 overflow-y-auto overflow-x-hidden">
-          {navItems.map(item => {
-            const isActive = activePage === item.id;
-            return (
-              <button key={item.id} onClick={() => { onNavigate(item.id); setMobileOpen(false); }}
-                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'} py-3 rounded-xl smooth-transition text-left relative group hover:scale-[1.02] active:scale-[0.98]`}
-                style={{
-                  background: isActive ? 'var(--primary-container)' : 'transparent',
-                  color: isActive ? 'var(--on-primary-container)' : 'var(--on-surface-variant)',
-                  fontWeight: isActive ? 600 : 400,
-                }}
-                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'var(--surface-container-high)'; e.currentTarget.style.color = 'var(--on-surface)'; }}}
-                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--on-surface-variant)'; }}}
-              >
-                <span className={`material-symbols-outlined text-[22px] flex-shrink-0 ${isCollapsed ? '' : 'mr-3'}`}>{item.icon}</span>
-                {!isCollapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
-                
-                {/* Tooltip for collapsed state */}
-                {isCollapsed && (
-                  <div className="absolute left-14 bg-[var(--inverse-surface)] text-[var(--inverse-on-surface)] text-xs font-semibold px-2 py-1 rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
-                    {item.label}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
-    </>
-  );
-}
-
-// === Top Header ===
-function TopHeader({ isConnected, toggleTheme, isDark, isCollapsed, setMobileOpen }: { 
-  isConnected: boolean; toggleTheme: () => void; isDark: boolean; 
-  isCollapsed: boolean; setMobileOpen: (o: boolean) => void; 
-}) {
-  return (
-    <header className={`fixed top-0 right-0 h-16 z-40 px-4 md:px-6 flex items-center justify-between border-b spring-transition left-0 ${isCollapsed ? 'lg:left-20' : 'lg:left-72'}`}
-      style={{ background: 'color-mix(in srgb, var(--surface) 80%, transparent)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
-      <div className="flex items-center gap-3">
-        {/* Hamburger Menu (Mobile Only) */}
-        <button onClick={() => setMobileOpen(true)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[var(--on-surface)]">
-          <span className="material-symbols-outlined text-[24px]">menu</span>
-        </button>
-
-        <span className="text-base md:text-lg font-semibold truncate max-w-[150px] sm:max-w-xs" style={{ color: 'var(--on-surface)' }}>Monitoring Dashboard</span>
-        
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0" style={{ background: isConnected ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : 'color-mix(in srgb, var(--error) 10%, transparent)' }}>
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: isConnected ? 'var(--primary)' : 'var(--error)', animation: isConnected ? 'pulse 2s infinite' : 'none' }} />
-          <span className="text-[10px] md:text-xs font-semibold tracking-wider uppercase" style={{ color: isConnected ? 'var(--primary)' : 'var(--error)' }}>
-            {isConnected ? 'LIVE' : 'Offline'}
-          </span>
+      {/* Brand */}
+      <div className="flex items-center gap-2 pr-4 border-r" style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 30%, transparent)' }}>
+        <span className="text-xl">🍄</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/20">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: isConnected ? 'var(--primary)' : 'var(--error)', boxShadow: isConnected ? '0 0 10px var(--primary)' : 'none' }} />
         </div>
       </div>
-      <div className="flex items-center gap-2 md:gap-4 shrink-0">
-        {/* Theme Toggle Button */}
-        <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition hover:scale-110 active:scale-90"
-          style={{ background: 'var(--surface-container-high)', color: 'var(--on-surface-variant)' }}
+
+      {/* Nav Items */}
+      <div className="flex items-center gap-1">
+        {navItems.map(item => {
+          const isActive = activePage === item.id;
+          return (
+            <button key={item.id} onClick={() => onNavigate(item.id)}
+              className="relative px-4 py-2 rounded-full text-sm font-medium smooth-transition active:scale-95 group"
+              style={{ color: isActive ? 'var(--on-surface)' : 'var(--on-surface-variant)' }}>
+              {isActive && (
+                <motion.div layoutId="nav-pill" className="absolute inset-0 rounded-full"
+                  style={{ background: 'color-mix(in srgb, var(--primary) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)' }}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                <span className="hidden md:inline">{item.label}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center pl-4 border-l gap-2" style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 30%, transparent)' }}>
+        <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition hover:scale-110 active:scale-90 bg-black/20 border border-white/5"
+          style={{ color: 'var(--on-surface-variant)' }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--on-surface)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--on-surface-variant)'}>
           <span className="material-symbols-outlined text-[18px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
         </button>
-
-        <div className="text-right hidden sm:block border-l pl-4" style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 30%, transparent)' }}>
-          <div className="text-xs font-semibold" style={{ color: 'var(--on-surface)' }}>Cultivator Admin</div>
-          <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--on-surface-variant)' }}>Main Facility</div>
-        </div>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--primary)' }}>
-          <span className="material-symbols-outlined text-[18px]" style={{ color: 'var(--on-primary)' }}>person</span>
-        </div>
       </div>
-    </header>
+    </motion.nav>
   );
 }
+
 
 // === KPI Card ===
 function KpiCard({ label, value, unit, icon, iconColor, accent, trend, trendLabel, status, isActive, onClick, currentVal, min, max }: {
@@ -536,155 +488,98 @@ export default function RealtimeDashboard() {
   }));
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden" style={{ background: 'var(--background)' }}>
-      <Sidebar 
+    <div className="flex min-h-screen w-full overflow-x-hidden font-sans relative" style={{ background: 'transparent' }}>
+      
+      <FluidIslandNav 
         activePage={activePage} onNavigate={setActivePage} 
-        isCollapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed}
-        isMobileOpen={isMobileMenuOpen} setMobileOpen={setIsMobileMenuOpen}
+        isConnected={isConnected} toggleTheme={toggleTheme} isDark={isDark}
       />
 
-      <div className={`flex-1 flex flex-col min-h-screen w-full transition-all duration-300 pl-0 ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
-        <TopHeader 
-          isConnected={isConnected} toggleTheme={toggleTheme} isDark={isDark} 
-          isCollapsed={isSidebarCollapsed} setMobileOpen={setIsMobileMenuOpen} 
-        />
-
-        <main className="relative pt-16 flex-1 flex flex-col w-full" style={{ background: 'var(--surface)' }}>
-          <div className="flex flex-col w-full px-4 md:px-6 pb-12 gap-6 pt-6 flex-1 max-w-full">
-
-            {activePage === 'dashboard' && (
-              <div className="page-fade-in flex flex-col gap-6">
-                {/* 1. KPI Cards (Now with Integrated Range Bars) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <KpiCard label="CO₂ Concentration" value={Math.round(sensors.co2).toString()} unit="ppm"
-                    icon="air" iconColor="var(--primary)" accent="var(--primary)"
-                    trend={getCo2Status() === 'good' ? 'Dalam Batas' : 'Di Luar Batas'} status={getCo2Status()}
-                    currentVal={sensors.co2} min={setpoints.co2Min} max={setpoints.co2Max}
-                    isActive={activeKpi === 'co2'} onClick={() => setActiveKpi('co2')} />
-                  <KpiCard label="Temperature" value={sensors.temp.toFixed(1)} unit="°C"
-                    icon="device_thermostat" iconColor="var(--secondary)" accent="var(--secondary)"
-                    trend={getTempStatus() === 'good' ? 'Dalam Batas' : 'Di Luar Batas'} status={getTempStatus()}
-                    currentVal={sensors.temp} min={setpoints.tempMin} max={setpoints.tempMax}
-                    isActive={activeKpi === 'temp'} onClick={() => setActiveKpi('temp')} />
-                  <KpiCard label="Humidity" value={Math.round(sensors.hum).toString()} unit="%"
-                    icon="water_drop" iconColor="var(--tertiary)" accent="var(--tertiary)"
-                    trend={getHumStatus() === 'good' ? 'Stabil' : 'Warning'} status={getHumStatus()}
-                    currentVal={sensors.hum} min={setpoints.humMin} max={setpoints.humMax}
-                    isActive={activeKpi === 'hum'} onClick={() => setActiveKpi('hum')} />
-                  <KpiCard label="Evap Temperature" value={sensors.evap.toFixed(1)} unit="°C"
-                    icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)"
-                    trend={getEvapStatus() === 'good' ? 'Normal' : 'Warning'} status={getEvapStatus()}
-                    currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax}
-                    isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
-                </div>
-
-                {/* 2. Charts & Actuators Row */}
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                  {/* Chart Section */}
-                  <div className="glass-card rounded-xl p-4 md:p-6 xl:col-span-8 flex flex-col min-h-[350px]">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-                      <h2 className="text-lg md:text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>{paramKeys[activeKpi]} Trends</h2>
-                      <select 
-                        value={activeKpi} 
-                        onChange={(e) => setActiveKpi(e.target.value as any)}
-                        className="w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none cursor-pointer"
-                        style={{ background: 'var(--surface-container-high)', color: 'var(--on-surface)', border: '1px solid var(--outline-variant)' }}
-                      >
-                        <option value="co2">CO₂ Concentration</option>
-                        <option value="temp">Room Temperature</option>
-                        <option value="hum">Humidity Level</option>
-                        <option value="evap">Evaporator Temp</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex-1 w-full relative min-h-[250px]">
-                      {formattedChartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={formattedChartData} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="var(--outline-variant)" opacity={0.3} vertical={false} />
-                            <XAxis dataKey="time" stroke="var(--on-surface-variant)" fontSize={10} tickMargin={10} minTickGap={20} />
-                            <YAxis stroke="var(--on-surface-variant)" fontSize={10} tickMargin={10} domain={['auto', 'auto']} />
-                            <Tooltip 
-                              contentStyle={{ backgroundColor: 'var(--inverse-surface)', borderColor: 'transparent', borderRadius: '8px', color: 'var(--inverse-on-surface)', fontSize: '12px' }}
-                              itemStyle={{ color: paramColors[activeKpi], fontWeight: 'bold' }}
-                            />
-                            <Line type="monotone" dataKey="value" stroke={paramColors[activeKpi]} strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 5, fill: paramColors[activeKpi], stroke: '#fff', strokeWidth: 2 }} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-sm font-medium" style={{ color: 'var(--on-surface-variant)' }}>
-                          Menunggu data grafik...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actuators Section (Stacked vertically on desktop right side) */}
-                  <div className="xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
-                    <ActuatorCard id="blower" title="Blower" icon="mode_fan" act={actuators.blower} onCommand={sendCommand} />
-                    <ActuatorCard id="compressor" title="Compressor" icon="heat_pump" act={actuators.compressor} onCommand={sendCommand} />
-                    <ActuatorCard id="exhaust" title="Exhaust Fan" icon="toys" act={actuators.exhaust} onCommand={sendCommand} />
-                    <ActuatorCard id="mistmaker" title="Mist Maker" icon="blur_on" act={actuators.mistmaker} onCommand={sendCommand} />
-                  </div>
-                </div>
-
-                {/* 3. Recent Data Log Preview */}
-                <div className="glass-card rounded-xl overflow-hidden mt-2">
-                  <div className="p-6 border-b flex justify-between items-end flex-wrap gap-4" style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
-                    <div>
-                      <h2 className="text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>Recent Telemetry Logs</h2>
-                      <p className="text-sm mt-1" style={{ color: 'var(--on-surface-variant)' }}>Live feed from Sensor Node 01 (Last 5 records)</p>
-                    </div>
-                    <button onClick={() => setActivePage('logs')}
-                      className="text-sm font-semibold flex items-center gap-1 transition-colors"
-                      style={{ color: 'var(--primary)' }}
-                      onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-container)'}
-                      onMouseLeave={e => e.currentTarget.style.color = 'var(--primary)'}>
-                      View All <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                    </button>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[500px]">
-                      <thead>
-                        <tr style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 30%, transparent)' }}>
-                          {['Timestamp', 'CO₂ (ppm)', 'Suhu (°C)', 'Kelembaban (%)', 'Evap (°C)'].map((h, i) => (
-                            <th key={i} className={`py-3 px-4 md:px-6 text-xs font-semibold uppercase tracking-wider ${i > 0 ? 'text-right' : ''}`}
-                              style={{ color: 'var(--on-surface-variant)' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody style={{ color: 'var(--on-surface)' }}>
-                        {recentLogs.slice(0, 5).map((row, i) => (
-                          <tr key={i} className="transition-colors border-t"
-                            style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 8%, transparent)' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-container-lowest) 50%, transparent)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                            <td className="py-3 px-4 md:px-6 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
-                            <td className="py-3 px-4 md:px-6 text-right font-medium">{row.co2}</td>
-                            <td className="py-3 px-4 md:px-6 text-right font-medium">{row.temp}</td>
-                            <td className="py-3 px-4 md:px-6 text-right font-medium">{row.hum}</td>
-                            <td className="py-3 px-4 md:px-6 text-right" style={{ color: 'var(--on-surface-variant)' }}>{row.evap}</td>
-                          </tr>
-                        ))}
-                        {recentLogs.length === 0 && (
-                          <tr>
-                            <td colSpan={5} className="py-8 text-center text-sm font-medium" style={{ color: 'var(--on-surface-variant)' }}>
-                              Belum ada data masuk.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+      <main className="relative pt-32 pb-24 flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 md:px-8">
+        
+        <AnimatePresence mode="wait">
+          {activePage === 'dashboard' && (
+            <motion.div key="dash" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex flex-col gap-8 w-full">
+              
+              {/* Macro Whitespace Header */}
+              <div className="py-8 md:py-12">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="inline-block px-3 py-1 rounded-full border border-white/10 bg-black/20 text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--primary)] mb-4 shadow-sm backdrop-blur-md">
+                  Live Telemetry
+                </motion.div>
+                <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-extrabold tracking-tighter" style={{ color: 'var(--on-surface)' }}>
+                  Cultivation Core
+                </motion.h1>
               </div>
-            )}
 
-            {activePage === 'logs' && <DataLogViewer />}
-            {activePage === 'settings' && <SetpointsViewer currentSetpoints={setpoints} onSave={saveSetpoints} />}
-          </div>
-        </main>
-      </div>
+              {/* Asymmetrical Bento Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-min gap-4 md:gap-6">
+                
+                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                  <KpiCard label="CO₂ Level" value={Math.round(sensors.co2).toString()} unit="ppm" icon="air" iconColor="var(--primary)" accent="var(--primary)" status={getCo2Status()} currentVal={sensors.co2} min={setpoints.co2Min} max={setpoints.co2Max} delay={0.1} isActive={activeKpi === 'co2'} onClick={() => setActiveKpi('co2')} />
+                  <KpiCard label="Room Temp" value={sensors.temp.toFixed(1)} unit="°C" icon="device_thermostat" iconColor="var(--secondary)" accent="var(--secondary)" status={getTempStatus()} currentVal={sensors.temp} min={setpoints.tempMin} max={setpoints.tempMax} delay={0.15} isActive={activeKpi === 'temp'} onClick={() => setActiveKpi('temp')} />
+                  <KpiCard label="Humidity" value={Math.round(sensors.hum).toString()} unit="%" icon="water_drop" iconColor="var(--tertiary)" accent="var(--tertiary)" status={getHumStatus()} currentVal={sensors.hum} min={setpoints.humMin} max={setpoints.humMax} delay={0.2} isActive={activeKpi === 'hum'} onClick={() => setActiveKpi('hum')} />
+                  <KpiCard label="Evaporator" value={sensors.evap.toFixed(1)} unit="°C" icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)" status={getEvapStatus()} currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax} delay={0.25} isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
+                </div>
+
+                {/* Actuators Bento Stack */}
+                <div className="md:col-span-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-4 md:gap-6">
+                  <ActuatorCard id="mistmaker" title="Mist Maker" icon="water" act={actuators.mistmaker} onCommand={sendCommand} delay={0.3} />
+                  <ActuatorCard id="blower" title="Circulation" icon="mode_fan" act={actuators.blower} onCommand={sendCommand} delay={0.35} />
+                  <ActuatorCard id="exhaust" title="Exhaust Fan" icon="wind_power" act={actuators.exhaust} onCommand={sendCommand} delay={0.4} />
+                  <ActuatorCard id="compressor" title="Compressor" icon="ac_unit" act={actuators.compressor} onCommand={sendCommand} delay={0.45} />
+                </div>
+                
+                {/* Chart Bento Box */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="md:col-span-12 rounded-[2rem] p-1.5" style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 40%, transparent)', border: '1px solid color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
+                  <div className="rounded-[calc(2rem-0.375rem)] p-6 md:p-8 flex flex-col min-h-[400px]" style={{ background: 'color-mix(in srgb, var(--surface-container-low) 40%, transparent)', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.05)' }}>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                      <div>
+                        <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--on-surface)' }}>{paramKeys[activeKpi]}</h2>
+                        <p className="text-sm font-medium mt-1" style={{ color: 'var(--on-surface-variant)' }}>Realtime trend over last 10 minutes</p>
+                      </div>
+                      <div className="bg-black/20 p-1.5 rounded-full border border-white/5 flex gap-1">
+                        {['co2', 'temp', 'hum', 'evap'].map(k => (
+                           <button key={k} onClick={() => setActiveKpi(k as any)} className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider smooth-transition" style={{ background: activeKpi === k ? 'var(--surface-container-high)' : 'transparent', color: activeKpi === k ? 'var(--primary)' : 'var(--on-surface-variant)' }}>{k}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex-1 w-full relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={formattedChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={paramColors[activeKpi]} stopOpacity={1}/>
+                              <stop offset="95%" stopColor={paramColors[activeKpi]} stopOpacity={0.2}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--outline-variant) 15%, transparent)" vertical={false} />
+                          <XAxis dataKey="time" stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+                          <YAxis stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dx={-10} domain={['auto', 'auto']} />
+                          <Tooltip contentStyle={{ backgroundColor: 'var(--surface-container-high)', border: '1px solid var(--outline-variant)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: 'var(--on-surface)', fontWeight: 600 }} itemStyle={{ color: paramColors[activeKpi] }} cursor={{ stroke: 'color-mix(in srgb, var(--outline-variant) 30%, transparent)' }} />
+                          <Line type="monotone" dataKey="value" stroke="url(#lineGrad)" strokeWidth={4} dot={false} activeDot={{ r: 6, fill: paramColors[activeKpi], stroke: '#fff', strokeWidth: 2 }} animationDuration={1000} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </motion.div>
+
+              </div>
+            </motion.div>
+          )}
+
+          {activePage === 'logs' && (
+            <motion.div key="logs" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="pt-8">
+              <DataLogViewer />
+            </motion.div>
+          )}
+
+          {activePage === 'settings' && (
+            <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="pt-8">
+              <SetpointsViewer currentSetpoints={setpoints} onSave={saveSetpoints} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
     </div>
   );
 }
