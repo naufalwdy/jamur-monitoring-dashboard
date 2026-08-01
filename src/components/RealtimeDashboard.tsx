@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ref, onValue, set, push, query, limitToLast } from "firebase/database";
 import { db } from "../lib/firebase";
@@ -14,6 +14,13 @@ interface Setpoints { tempMin: number; tempMax: number; humMin: number; humMax: 
 interface LogRow { date: string; co2: string; temp: string; hum: string; evap: string; }
 
 type Page = 'dashboard' | 'logs' | 'admin';
+
+// === Module-level constants (not recreated on every render) ===
+const PARAM_COLORS = { co2: 'var(--primary)', temp: 'var(--secondary)', hum: 'var(--tertiary)', evap: 'var(--primary-fixed-dim)' } as const;
+const PARAM_KEYS   = { co2: 'CO₂ ppm', temp: 'Temperature °C', hum: 'Humidity %', evap: 'Evap Temp °C' } as const;
+
+// === Generic status helper (replaces 4 duplicate functions) ===
+const getStatus = (val: number, min: number, max: number): 'good' | 'warning' => val >= min && val <= max ? 'good' : 'warning';
 
 // === Fluid Island Nav ===
 function FluidIslandNav({ activePage, onNavigate, isConnected, toggleTheme, isDark }: { 
@@ -456,10 +463,6 @@ export default function RealtimeDashboard() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [activeKpi, setActiveKpi] = useState<'co2' | 'temp' | 'hum' | 'evap'>('co2');
   const [isAdmin, setIsAdmin] = useState(false);
-  
-  // Layout states
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Theme state
   const [isDark, setIsDark] = useState(true);
@@ -550,21 +553,20 @@ export default function RealtimeDashboard() {
     push(ref(db, 'commands'), `SET,${newSp.tempMin},${newSp.tempMax},${newSp.humMin},${newSp.humMax},${Math.round(newSp.co2Min)},${Math.round(newSp.co2Max)},${newSp.evapMin},${newSp.evapMax}`);
   };
 
-  const getTempStatus = (): 'good' | 'warning' | 'critical' => sensors.temp >= setpoints.tempMin && sensors.temp <= setpoints.tempMax ? 'good' : 'warning';
-  const getHumStatus = (): 'good' | 'warning' | 'critical' => sensors.hum >= setpoints.humMin && sensors.hum <= setpoints.humMax ? 'good' : 'warning';
-  const getCo2Status = (): 'good' | 'warning' | 'critical' => sensors.co2 >= setpoints.co2Min && sensors.co2 <= setpoints.co2Max ? 'good' : 'warning';
-  const getEvapStatus = (): 'good' | 'warning' | 'critical' => sensors.evap >= setpoints.evapMin && sensors.evap <= setpoints.evapMax ? 'good' : 'warning';
+  // Status helpers use the module-level generic getStatus()
+  const tempStatus = getStatus(sensors.temp, setpoints.tempMin, setpoints.tempMax);
+  const humStatus  = getStatus(sensors.hum,  setpoints.humMin,  setpoints.humMax);
+  const co2Status  = getStatus(sensors.co2,  setpoints.co2Min,  setpoints.co2Max);
+  const evapStatus = getStatus(sensors.evap, setpoints.evapMin, setpoints.evapMax);
 
-  // Chart preparation
-  const chartData = [...recentLogs].reverse().slice(-20); // get last 20 points chronologically for chart
-  const paramColors = { co2: 'var(--primary)', temp: 'var(--secondary)', hum: 'var(--tertiary)', evap: 'var(--primary-fixed-dim)' };
-  const paramKeys = { co2: 'CO₂ ppm', temp: 'Temperature °C', hum: 'Humidity %', evap: 'Evap Temp °C' };
-
-  // Convert string values to numbers for recharts safely
-  const formattedChartData = chartData.map(log => ({
-    time: log.date ? (log.date.split(' ')[1] || log.date) : '',
-    value: log[activeKpi] !== undefined ? Number(log[activeKpi]) : 0
-  }));
+  // Memoized chart data: only recomputed when recentLogs or activeKpi changes
+  const formattedChartData = useMemo(() => {
+    const chronological = recentLogs.slice(0, 20).reverse();
+    return chronological.map(log => ({
+      time: log.date ? (log.date.split(' ')[1] || log.date) : '',
+      value: log[activeKpi] !== undefined ? Number(log[activeKpi]) : 0
+    }));
+  }, [recentLogs, activeKpi]);
 
   return (
     <div className="flex min-h-screen w-full overflow-x-hidden font-sans relative" style={{ background: 'transparent' }}>
@@ -594,10 +596,10 @@ export default function RealtimeDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-min gap-4 md:gap-6">
                 
                 <div className="md:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  <KpiCard label="CO₂ Level" value={Math.round(sensors.co2).toString()} unit="ppm" icon="air" iconColor="var(--primary)" accent="var(--primary)" status={getCo2Status()} currentVal={sensors.co2} min={setpoints.co2Min} max={setpoints.co2Max} isActive={activeKpi === 'co2'} onClick={() => setActiveKpi('co2')} />
-                  <KpiCard label="Room Temp" value={sensors.temp.toFixed(1)} unit="°C" icon="device_thermostat" iconColor="var(--secondary)" accent="var(--secondary)" status={getTempStatus()} currentVal={sensors.temp} min={setpoints.tempMin} max={setpoints.tempMax} isActive={activeKpi === 'temp'} onClick={() => setActiveKpi('temp')} />
-                  <KpiCard label="Humidity" value={Math.round(sensors.hum).toString()} unit="%" icon="water_drop" iconColor="var(--tertiary)" accent="var(--tertiary)" status={getHumStatus()} currentVal={sensors.hum} min={setpoints.humMin} max={setpoints.humMax} isActive={activeKpi === 'hum'} onClick={() => setActiveKpi('hum')} />
-                  <KpiCard label="Evaporator" value={sensors.evap.toFixed(1)} unit="°C" icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)" status={getEvapStatus()} currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax} isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
+                  <KpiCard label="CO₂ Level" value={Math.round(sensors.co2).toString()} unit="ppm" icon="air" iconColor="var(--primary)" accent="var(--primary)" status={co2Status} currentVal={sensors.co2} min={setpoints.co2Min} max={setpoints.co2Max} isActive={activeKpi === 'co2'} onClick={() => setActiveKpi('co2')} />
+                  <KpiCard label="Room Temp" value={sensors.temp.toFixed(1)} unit="°C" icon="device_thermostat" iconColor="var(--secondary)" accent="var(--secondary)" status={tempStatus} currentVal={sensors.temp} min={setpoints.tempMin} max={setpoints.tempMax} isActive={activeKpi === 'temp'} onClick={() => setActiveKpi('temp')} />
+                  <KpiCard label="Humidity" value={Math.round(sensors.hum).toString()} unit="%" icon="water_drop" iconColor="var(--tertiary)" accent="var(--tertiary)" status={humStatus} currentVal={sensors.hum} min={setpoints.humMin} max={setpoints.humMax} isActive={activeKpi === 'hum'} onClick={() => setActiveKpi('hum')} />
+                  <KpiCard label="Evaporator" value={sensors.evap.toFixed(1)} unit="°C" icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)" status={evapStatus} currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax} isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
                 </div>
                 
                 {/* === Recent Data Mini-Table === */}
@@ -669,11 +671,11 @@ export default function RealtimeDashboard() {
                 >
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `color-mix(in srgb, ${paramColors[activeKpi]} 15%, transparent)` }}>
-                        <span className="material-symbols-outlined text-base" style={{ color: paramColors[activeKpi] }}>show_chart</span>
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `color-mix(in srgb, ${PARAM_COLORS[activeKpi]} 15%, transparent)` }}>
+                        <span className="material-symbols-outlined text-base" style={{ color: PARAM_COLORS[activeKpi] }}>show_chart</span>
                       </div>
                       <div>
-                        <h2 className="text-sm font-bold" style={{ color: 'var(--on-surface)' }}>{paramKeys[activeKpi]}</h2>
+                        <h2 className="text-sm font-bold" style={{ color: 'var(--on-surface)' }}>{PARAM_KEYS[activeKpi]}</h2>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--on-surface-variant)' }}>Trend historis (20 data terakhir)</p>
                       </div>
                     </div>
@@ -681,7 +683,7 @@ export default function RealtimeDashboard() {
                       {(['co2', 'temp', 'hum', 'evap'] as const).map(k => (
                         <button key={k} onClick={() => setActiveKpi(k)}
                           className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider smooth-transition active:scale-95"
-                          style={{ background: activeKpi === k ? paramColors[k] : 'transparent', color: activeKpi === k ? '#fff' : 'var(--on-surface-variant)', boxShadow: activeKpi === k ? `0 2px 8px color-mix(in srgb, ${paramColors[k]} 40%, transparent)` : 'none' }}
+                          style={{ background: activeKpi === k ? PARAM_COLORS[k] : 'transparent', color: activeKpi === k ? '#fff' : 'var(--on-surface-variant)', boxShadow: activeKpi === k ? `0 2px 8px color-mix(in srgb, ${PARAM_COLORS[k]} 40%, transparent)` : 'none' }}
                         >{k}</button>
                       ))}
                     </div>
@@ -699,8 +701,8 @@ export default function RealtimeDashboard() {
                         <LineChart data={formattedChartData} margin={{ top: 10, right: 16, left: -10, bottom: 0 }}>
                           <defs>
                             <linearGradient id="lineGradFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={paramColors[activeKpi]} stopOpacity={0.3}/>
-                              <stop offset="100%" stopColor={paramColors[activeKpi]} stopOpacity={0}/>
+                              <stop offset="0%" stopColor={PARAM_COLORS[activeKpi]} stopOpacity={0.3}/>
+                              <stop offset="100%" stopColor={PARAM_COLORS[activeKpi]} stopOpacity={0}/>
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="2 6" stroke="color-mix(in srgb, var(--outline-variant) 20%, transparent)" vertical={false} />
@@ -708,20 +710,20 @@ export default function RealtimeDashboard() {
                           <YAxis stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dx={-4} domain={['auto', 'auto']} tick={{ fill: 'var(--on-surface-variant)' }} />
                           <Tooltip
                             contentStyle={{ backgroundColor: 'color-mix(in srgb, var(--surface-container-high) 95%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, var(--outline-variant) 30%, transparent)', borderRadius: '12px', boxShadow: '0 16px 32px rgba(0,0,0,0.4)', color: 'var(--on-surface)', fontWeight: 700, fontSize: 13 }}
-                            itemStyle={{ color: paramColors[activeKpi] }}
+                            itemStyle={{ color: PARAM_COLORS[activeKpi] }}
                             labelStyle={{ color: 'var(--on-surface-variant)', fontSize: 11, fontWeight: 500 }}
                             cursor={{ stroke: 'color-mix(in srgb, var(--outline-variant) 40%, transparent)', strokeWidth: 1, strokeDasharray: '4 4' }}
                           />
                           <Line
                             type="monotone" dataKey="value"
-                            stroke={paramColors[activeKpi]} strokeWidth={2.5}
-                            dot={formattedChartData.length <= 2 ? { r: 4, fill: paramColors[activeKpi], stroke: 'var(--surface-container-lowest)', strokeWidth: 2 } : false}
-                            activeDot={{ r: 5, fill: paramColors[activeKpi], stroke: 'var(--surface-container-lowest)', strokeWidth: 2, style: { filter: `drop-shadow(0 0 6px ${paramColors[activeKpi]})` } }}
+                            stroke={PARAM_COLORS[activeKpi]} strokeWidth={2.5}
+                            dot={formattedChartData.length <= 2 ? { r: 4, fill: PARAM_COLORS[activeKpi], stroke: 'var(--surface-container-lowest)', strokeWidth: 2 } : false}
+                            activeDot={{ r: 5, fill: PARAM_COLORS[activeKpi], stroke: 'var(--surface-container-lowest)', strokeWidth: 2, style: { filter: `drop-shadow(0 0 6px ${PARAM_COLORS[activeKpi]})` } }}
                             animationDuration={800}
                             animationEasing="ease-out"
                           />
-                        </LineChart>
-                      </ResponsiveContainer>
+                         </LineChart>
+                       </ResponsiveContainer>
                     )}
                   </div>
                 </motion.div>
