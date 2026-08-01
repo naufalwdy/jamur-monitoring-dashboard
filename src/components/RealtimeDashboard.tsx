@@ -606,7 +606,7 @@ export default function RealtimeDashboard() {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                       <div>
                         <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--on-surface)' }}>{paramKeys[activeKpi]}</h2>
-                        <p className="text-sm font-medium mt-1" style={{ color: 'var(--on-surface-variant)' }}>Realtime trend over last 10 minutes</p>
+                        <p className="text-sm font-medium mt-1" style={{ color: 'var(--on-surface-variant)' }}>Realtime trend over last 2 minutes</p>
                       </div>
                       <div className="bg-black/20 p-1.5 rounded-full border border-white/5 flex gap-1">
                         {['co2', 'temp', 'hum', 'evap'].map(k => (
