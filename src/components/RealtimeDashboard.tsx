@@ -560,10 +560,10 @@ export default function RealtimeDashboard() {
   const paramColors = { co2: 'var(--primary)', temp: 'var(--secondary)', hum: 'var(--tertiary)', evap: 'var(--primary-fixed-dim)' };
   const paramKeys = { co2: 'CO₂ ppm', temp: 'Temperature °C', hum: 'Humidity %', evap: 'Evap Temp °C' };
 
-  // Convert string values to numbers for recharts
+  // Convert string values to numbers for recharts safely
   const formattedChartData = chartData.map(log => ({
-    time: log.date.split(' ')[1] || log.date,
-    value: parseFloat(log[activeKpi])
+    time: log.date ? (log.date.split(' ')[1] || log.date) : '',
+    value: log[activeKpi] !== undefined ? Number(log[activeKpi]) : 0
   }));
 
   return (
@@ -614,7 +614,7 @@ export default function RealtimeDashboard() {
                         ))}
                       </div>
                     </div>
-                    <div className="flex-1 w-full relative">
+                    <div className="flex-1 w-full relative min-h-[300px]">
                       {formattedChartData.length === 0 ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-sm font-semibold uppercase tracking-widest gap-2" style={{ color: 'var(--on-surface-variant)' }}>
                           <span className="material-symbols-outlined text-4xl animate-pulse">hourglass_empty</span>
