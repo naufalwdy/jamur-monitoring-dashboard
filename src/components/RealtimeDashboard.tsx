@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ref, onValue, set, push, query, limitToLast } from "firebase/database";
 import { db } from "../lib/firebase";
@@ -461,8 +461,11 @@ function SetpointsViewer({ currentSetpoints, onSave }: { currentSetpoints: Setpo
 // === Main Dashboard Component ===
 export default function RealtimeDashboard() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
-  const [activeKpi, setActiveKpi] = useState<'co2' | 'temp' | 'hum' | 'evap'>('co2');
+  const [activeKpi, setActiveKpi] = useState<keyof SensorsData>('co2');
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // To prevent glitching back to auto instantly after a local command
+  const lastCommandTime = useRef<Record<string, number>>({});
 
   // Theme state
   const [isDark, setIsDark] = useState(true);
@@ -520,7 +523,22 @@ export default function RealtimeDashboard() {
       if (snapshot.exists()) {
         const p = snapshot.val();
         if (p.sensors) setSensors(p.sensors);
-        if (p.actuators) setActuators(p.actuators);
+        if (p.actuators) {
+          setActuators(prev => {
+            const updated = { ...prev };
+            let changed = false;
+            for (const key in p.actuators) {
+              // Ignore updates for actuators that were just commanded locally within the last 4 seconds
+              if (!lastCommandTime.current[key] || Date.now() - lastCommandTime.current[key] > 4000) {
+                if (updated[key as keyof ActuatorsData].mode !== p.actuators[key].mode || updated[key as keyof ActuatorsData].state !== p.actuators[key].state) {
+                  updated[key as keyof ActuatorsData] = p.actuators[key];
+                  changed = true;
+                }
+              }
+            }
+            return changed ? updated : prev;
+          });
+        }
         if (p.setpoints) setSetpoints(p.setpoints);
       }
     });
@@ -543,6 +561,7 @@ export default function RealtimeDashboard() {
   }, []);
 
   const sendCommand = (id: string, mode: 'auto' | 'manual', state: boolean) => {
+    lastCommandTime.current[id] = Date.now();
     setActuators(prev => ({ ...prev, [id]: { mode, state } }));
     push(ref(db, 'commands'), `CMD,${id},${mode},${state ? 1 : 0}`);
   };
