@@ -600,44 +600,129 @@ export default function RealtimeDashboard() {
                   <KpiCard label="Evaporator" value={sensors.evap.toFixed(1)} unit="°C" icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)" status={getEvapStatus()} currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax} isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
                 </div>
                 
-                {/* Chart Bento Box */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="md:col-span-12 rounded-[2rem] p-1.5" style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 40%, transparent)', border: '1px solid color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
-                  <div className="rounded-[calc(2rem-0.375rem)] p-6 md:p-8 flex flex-col min-h-[400px]" style={{ background: 'color-mix(in srgb, var(--surface-container-low) 40%, transparent)', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.05)' }}>
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                      <div>
-                        <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--on-surface)' }}>{paramKeys[activeKpi]}</h2>
-                        <p className="text-sm font-medium mt-1" style={{ color: 'var(--on-surface-variant)' }}>Realtime trend over last 2 minutes</p>
+                {/* === Recent Data Mini-Table === */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                  className="md:col-span-12 rounded-2xl overflow-hidden"
+                  style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 60%, transparent)', border: '1px solid color-mix(in srgb, var(--outline-variant) 12%, transparent)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
+                >
+                  <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--primary) 15%, transparent)' }}>
+                        <span className="material-symbols-outlined text-base" style={{ color: 'var(--primary)' }}>table_rows</span>
                       </div>
-                      <div className="bg-black/20 p-1.5 rounded-full border border-white/5 flex gap-1">
-                        {['co2', 'temp', 'hum', 'evap'].map(k => (
-                           <button key={k} onClick={() => setActiveKpi(k as any)} className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider smooth-transition" style={{ background: activeKpi === k ? 'var(--surface-container-high)' : 'transparent', color: activeKpi === k ? 'var(--primary)' : 'var(--on-surface-variant)' }}>{k}</button>
-                        ))}
+                      <div>
+                        <h2 className="text-sm font-bold" style={{ color: 'var(--on-surface)' }}>Data Terbaru</h2>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--on-surface-variant)' }}>5 pembacaan terakhir — log per 2 menit</p>
                       </div>
                     </div>
-                    <div className="flex-1 w-full relative min-h-[300px]">
-                      {formattedChartData.length === 0 ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-sm font-semibold uppercase tracking-widest gap-2" style={{ color: 'var(--on-surface-variant)' }}>
-                          <span className="material-symbols-outlined text-4xl animate-pulse">hourglass_empty</span>
-                          Menunggu Data Log...
-                        </div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={formattedChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <button
+                      onClick={() => setActivePage('logs')}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold tracking-wide smooth-transition active:scale-95 hover:scale-105"
+                      style={{ background: 'color-mix(in srgb, var(--primary) 12%, transparent)', color: 'var(--primary)', border: '1px solid color-mix(in srgb, var(--primary) 20%, transparent)' }}
+                    >
+                      <span>Lihat Selengkapnya</span>
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+                  </div>
+                  {recentLogs.length === 0 ? (
+                    <div className="py-12 flex flex-col items-center gap-3" style={{ color: 'var(--on-surface-variant)' }}>
+                      <span className="material-symbols-outlined text-4xl opacity-30 animate-pulse">hourglass_empty</span>
+                      <span className="text-xs font-semibold uppercase tracking-widest">Menunggu data pertama...</span>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr style={{ background: 'color-mix(in srgb, var(--surface-container) 40%, transparent)' }}>
+                            {['Timestamp', 'CO₂ (ppm)', 'Suhu (°C)', 'Kelembaban (%)', 'Evap (°C)'].map((h, i) => (
+                              <th key={i} className={`py-2.5 px-5 text-[10px] font-semibold uppercase tracking-widest ${i > 0 ? 'text-right' : ''}`} style={{ color: 'var(--on-surface-variant)' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody style={{ color: 'var(--on-surface)' }}>
+                          {recentLogs.slice(0, 5).map((row, i) => (
+                            <tr key={i}
+                              className="border-t smooth-transition"
+                              style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 8%, transparent)' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--primary) 4%, transparent)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              <td className="py-3 px-5 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
+                              <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--primary)' }}>{row.co2}</td>
+                              <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--secondary)' }}>{row.temp}</td>
+                              <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--tertiary)' }}>{row.hum}</td>
+                              <td className="py-3 px-5 text-right text-sm font-medium" style={{ color: 'var(--on-surface-variant)' }}>{row.evap}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* === Sensor Trend Chart === */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
+                  className="md:col-span-12 rounded-2xl p-6 md:p-8"
+                  style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 60%, transparent)', border: '1px solid color-mix(in srgb, var(--outline-variant) 12%, transparent)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `color-mix(in srgb, ${paramColors[activeKpi]} 15%, transparent)` }}>
+                        <span className="material-symbols-outlined text-base" style={{ color: paramColors[activeKpi] }}>show_chart</span>
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold" style={{ color: 'var(--on-surface)' }}>{paramKeys[activeKpi]}</h2>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--on-surface-variant)' }}>Trend historis (20 data terakhir)</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 p-1 rounded-full" style={{ background: 'color-mix(in srgb, var(--surface-container) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--outline-variant) 15%, transparent)' }}>
+                      {(['co2', 'temp', 'hum', 'evap'] as const).map(k => (
+                        <button key={k} onClick={() => setActiveKpi(k)}
+                          className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider smooth-transition active:scale-95"
+                          style={{ background: activeKpi === k ? paramColors[k] : 'transparent', color: activeKpi === k ? '#fff' : 'var(--on-surface-variant)', boxShadow: activeKpi === k ? `0 2px 8px color-mix(in srgb, ${paramColors[k]} 40%, transparent)` : 'none' }}
+                        >{k}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Fixed-height chart container so Recharts can calculate 100% properly */}
+                  <div style={{ width: '100%', height: '300px' }}>
+                    {formattedChartData.length === 0 ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-3" style={{ color: 'var(--on-surface-variant)' }}>
+                        <span className="material-symbols-outlined text-5xl opacity-20 animate-pulse">hourglass_empty</span>
+                        <span className="text-xs font-semibold uppercase tracking-widest">Menunggu data log pertama...</span>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={formattedChartData} margin={{ top: 10, right: 16, left: -10, bottom: 0 }}>
                           <defs>
-                            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={paramColors[activeKpi]} stopOpacity={1}/>
-                              <stop offset="95%" stopColor={paramColors[activeKpi]} stopOpacity={0.2}/>
+                            <linearGradient id="lineGradFill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor={paramColors[activeKpi]} stopOpacity={0.3}/>
+                              <stop offset="100%" stopColor={paramColors[activeKpi]} stopOpacity={0}/>
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--outline-variant) 15%, transparent)" vertical={false} />
-                          <XAxis dataKey="time" stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dy={10} />
-                          <YAxis stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dx={-10} domain={['auto', 'auto']} />
-                          <Tooltip contentStyle={{ backgroundColor: 'var(--surface-container-high)', border: '1px solid var(--outline-variant)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: 'var(--on-surface)', fontWeight: 600 }} itemStyle={{ color: paramColors[activeKpi] }} cursor={{ stroke: 'color-mix(in srgb, var(--outline-variant) 30%, transparent)' }} />
-                          <Line type="monotone" dataKey="value" stroke="url(#lineGrad)" strokeWidth={4} dot={formattedChartData.length === 1 ? { r: 5, fill: paramColors[activeKpi], stroke: 'transparent' } : false} activeDot={{ r: 6, fill: paramColors[activeKpi], stroke: '#fff', strokeWidth: 2 }} animationDuration={1000} />
+                          <CartesianGrid strokeDasharray="2 6" stroke="color-mix(in srgb, var(--outline-variant) 20%, transparent)" vertical={false} />
+                          <XAxis dataKey="time" stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dy={8} tick={{ fill: 'var(--on-surface-variant)' }} />
+                          <YAxis stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dx={-4} domain={['auto', 'auto']} tick={{ fill: 'var(--on-surface-variant)' }} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: 'color-mix(in srgb, var(--surface-container-high) 95%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, var(--outline-variant) 30%, transparent)', borderRadius: '12px', boxShadow: '0 16px 32px rgba(0,0,0,0.4)', color: 'var(--on-surface)', fontWeight: 700, fontSize: 13 }}
+                            itemStyle={{ color: paramColors[activeKpi] }}
+                            labelStyle={{ color: 'var(--on-surface-variant)', fontSize: 11, fontWeight: 500 }}
+                            cursor={{ stroke: 'color-mix(in srgb, var(--outline-variant) 40%, transparent)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                          />
+                          <Line
+                            type="monotone" dataKey="value"
+                            stroke={paramColors[activeKpi]} strokeWidth={2.5}
+                            dot={formattedChartData.length <= 2 ? { r: 4, fill: paramColors[activeKpi], stroke: 'var(--surface-container-lowest)', strokeWidth: 2 } : false}
+                            activeDot={{ r: 5, fill: paramColors[activeKpi], stroke: 'var(--surface-container-lowest)', strokeWidth: 2, style: { filter: `drop-shadow(0 0 6px ${paramColors[activeKpi]})` } }}
+                            animationDuration={800}
+                            animationEasing="ease-out"
+                          />
                         </LineChart>
                       </ResponsiveContainer>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </motion.div>
 
