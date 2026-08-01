@@ -615,7 +615,13 @@ export default function RealtimeDashboard() {
                       </div>
                     </div>
                     <div className="flex-1 w-full relative">
-                      <ResponsiveContainer width="100%" height="100%">
+                      {formattedChartData.length === 0 ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-sm font-semibold uppercase tracking-widest gap-2" style={{ color: 'var(--on-surface-variant)' }}>
+                          <span className="material-symbols-outlined text-4xl animate-pulse">hourglass_empty</span>
+                          Menunggu Data Log...
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={formattedChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <defs>
                             <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
@@ -627,9 +633,10 @@ export default function RealtimeDashboard() {
                           <XAxis dataKey="time" stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dy={10} />
                           <YAxis stroke="var(--on-surface-variant)" fontSize={10} tickLine={false} axisLine={false} dx={-10} domain={['auto', 'auto']} />
                           <Tooltip contentStyle={{ backgroundColor: 'var(--surface-container-high)', border: '1px solid var(--outline-variant)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: 'var(--on-surface)', fontWeight: 600 }} itemStyle={{ color: paramColors[activeKpi] }} cursor={{ stroke: 'color-mix(in srgb, var(--outline-variant) 30%, transparent)' }} />
-                          <Line type="monotone" dataKey="value" stroke="url(#lineGrad)" strokeWidth={4} dot={false} activeDot={{ r: 6, fill: paramColors[activeKpi], stroke: '#fff', strokeWidth: 2 }} animationDuration={1000} />
+                          <Line type="monotone" dataKey="value" stroke="url(#lineGrad)" strokeWidth={4} dot={formattedChartData.length === 1 ? { r: 5, fill: paramColors[activeKpi], stroke: 'transparent' } : false} activeDot={{ r: 6, fill: paramColors[activeKpi], stroke: '#fff', strokeWidth: 2 }} animationDuration={1000} />
                         </LineChart>
                       </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
                 </motion.div>
