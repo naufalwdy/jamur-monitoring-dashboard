@@ -528,8 +528,17 @@ export default function RealtimeDashboard() {
             const updated = { ...prev };
             let changed = false;
             for (const key in p.actuators) {
-              // Ignore updates for actuators that were just commanded locally within the last 4 seconds
-              if (!lastCommandTime.current[key] || Date.now() - lastCommandTime.current[key] > 4000) {
+              const pending = (lastCommandTime.current as any)[key + '_pending'];
+              
+              if (pending) {
+                // If the incoming state matches the pending state exactly, we can release the lock
+                if (p.actuators[key].mode === pending.mode && p.actuators[key].state === pending.state) {
+                  delete (lastCommandTime.current as any)[key + '_pending'];
+                  updated[key as keyof ActuatorsData] = p.actuators[key];
+                  changed = true;
+                }
+              } else {
+                // No pending command, safe to update from backend
                 if (updated[key as keyof ActuatorsData].mode !== p.actuators[key].mode || updated[key as keyof ActuatorsData].state !== p.actuators[key].state) {
                   updated[key as keyof ActuatorsData] = p.actuators[key];
                   changed = true;
@@ -561,7 +570,7 @@ export default function RealtimeDashboard() {
   }, []);
 
   const sendCommand = (id: string, mode: 'auto' | 'manual', state: boolean) => {
-    lastCommandTime.current[id] = Date.now();
+    (lastCommandTime.current as any)[id + '_pending'] = { mode, state };
     setActuators(prev => ({ ...prev, [id]: { mode, state } }));
     push(ref(db, 'commands'), `CMD,${id},${mode},${state ? 1 : 0}`);
   };
