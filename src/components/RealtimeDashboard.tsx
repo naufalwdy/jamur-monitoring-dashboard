@@ -259,10 +259,10 @@ function ActuatorCard({ id, title, icon, act, onCommand }: {
 function DataLogViewer() {
   const [data, setData] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [logType, setLogType] = useState<'10m' | '1h'>('10m');
+  const [logType, setLogType] = useState<'2m' | '1h'>('2m');
   const [error, setError] = useState('');
 
-  const logLabels: Record<string, string> = { '10m': 'Per 10 Menit', '1h': 'Rata-rata 1 Jam' };
+  const logLabels: Record<string, string> = { '2m': 'Per 2 Menit', '1h': 'Rata-rata 1 Jam' };
 
   useEffect(() => {
     setLoading(true); setError('');
@@ -307,11 +307,11 @@ function DataLogViewer() {
               <span className="material-symbols-outlined text-base">download</span> Export CSV
             </button>
             <div className="flex gap-1 p-1 rounded-full" style={{ background: 'var(--surface-container-high)' }}>
-              {(['10m', '1h'] as const).map(t => (
+              {(['2m', '1h'] as const).map(t => (
                 <button key={t} onClick={() => setLogType(t)}
                   className="px-4 py-1.5 text-xs font-semibold rounded-full transition-all"
                   style={{ background: logType === t ? 'var(--primary)' : 'transparent', color: logType === t ? 'var(--on-primary)' : 'var(--on-surface-variant)' }}>
-                  {t === '10m' ? '10 Menit' : '1 Jam (Avg)'}
+                  {t === '2m' ? '2 Menit' : '1 Jam (Avg)'}
                 </button>
               ))}
             </div>
@@ -476,7 +476,7 @@ export default function RealtimeDashboard() {
   });
   const [isConnected, setIsConnected] = useState(false);
   
-  // Recent 10m logs for dashboard charts
+  // Recent 2m logs for dashboard charts
   const [recentLogs, setRecentLogs] = useState<LogRow[]>([]);
 
   // Initialize theme and auth
@@ -526,9 +526,9 @@ export default function RealtimeDashboard() {
     const connRef = ref(db, '.info/connected');
     const unsubConn = onValue(connRef, (snap) => setIsConnected(snap.val() === true));
     
-    // Fetch recent 10m logs for chart and preview table
-    const log10mRef = query(ref(db, 'logs/10m'), limitToLast(200));
-    const unsubLog = onValue(log10mRef, (snapshot) => {
+    // Fetch recent 2m logs for chart and preview table
+    const log2mRef = query(ref(db, 'logs/2m'), limitToLast(200));
+    const unsubLog = onValue(log2mRef, (snapshot) => {
       if (snapshot.exists()) {
         const parsed: LogRow[] = [];
         snapshot.forEach((child) => { parsed.push(child.val()); });
