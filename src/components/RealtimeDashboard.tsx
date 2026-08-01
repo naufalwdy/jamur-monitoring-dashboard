@@ -531,11 +531,15 @@ export default function RealtimeDashboard() {
               const pending = (lastCommandTime.current as any)[key + '_pending'];
               
               if (pending) {
-                // If the incoming state matches the pending state exactly, we can release the lock
-                if (p.actuators[key].mode === pending.mode && p.actuators[key].state === pending.state) {
-                  delete (lastCommandTime.current as any)[key + '_pending'];
-                  updated[key as keyof ActuatorsData] = p.actuators[key];
-                  changed = true;
+                // If the incoming mode matches pending mode...
+                if (p.actuators[key].mode === pending.mode) {
+                  // For 'auto', we don't care what the state is (hardware decides it).
+                  // For 'manual', we want the state to match what we requested.
+                  if (pending.mode === 'auto' || p.actuators[key].state === pending.state) {
+                    delete (lastCommandTime.current as any)[key + '_pending'];
+                    updated[key as keyof ActuatorsData] = p.actuators[key];
+                    changed = true;
+                  }
                 }
               } else {
                 // No pending command, safe to update from backend
