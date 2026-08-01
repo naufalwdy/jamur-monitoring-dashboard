@@ -602,6 +602,36 @@ export default function RealtimeDashboard() {
                   <KpiCard label="Evaporator" value={sensors.evap.toFixed(1)} unit="°C" icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)" status={evapStatus} currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax} isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
                 </div>
                 
+                {/* === Actuator Status Grid === */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                  className="md:col-span-12 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
+                >
+                  {[
+                    { key: 'compressor', name: 'Compressor AC', icon: 'mode_fan', color: 'var(--secondary)' },
+                    { key: 'mistmaker', name: 'Mist Maker', icon: 'cloud', color: 'var(--tertiary)' },
+                    { key: 'exhaust', name: 'Exhaust Fan', icon: 'air', color: 'var(--primary)' },
+                    { key: 'blower', name: 'Blower Indoor', icon: 'toys', color: 'var(--primary-fixed)' }
+                  ].map(act => {
+                    const data = actuators[act.key as keyof ActuatorsData];
+                    return (
+                      <div key={act.key} className="flex items-center gap-3 p-3 md:p-4 rounded-2xl smooth-transition" style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 60%, transparent)', border: '1px solid color-mix(in srgb, var(--outline-variant) 12%, transparent)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
+                        <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 rounded-xl flex items-center justify-center smooth-transition" style={{ background: data.state ? act.color : 'var(--surface-container-highest)', color: data.state ? '#fff' : 'var(--on-surface-variant)', boxShadow: data.state ? `0 4px 12px color-mix(in srgb, ${act.color} 40%, transparent)` : 'none' }}>
+                          <span className={`material-symbols-outlined ${data.state ? 'animate-[spin_4s_linear_infinite]' : ''}`} style={{ animationPlayState: data.state ? 'running' : 'paused' }}>{act.icon}</span>
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-xs md:text-sm font-bold truncate" style={{ color: 'var(--on-surface)' }}>{act.name}</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider" style={{ color: data.state ? act.color : 'var(--on-surface-variant)' }}>{data.state ? 'ON' : 'OFF'}</span>
+                            <span className="w-1 h-1 rounded-full bg-current opacity-30"></span>
+                            <span className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--on-surface-variant)' }}>{data.mode}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </motion.div>
+                
                 {/* === Recent Data Mini-Table === */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
