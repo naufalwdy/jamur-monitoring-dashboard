@@ -34,9 +34,9 @@ Pemberian tegangan yang benar sangat penting agar sensor bekerja akurat dan mikr
 ### Output Aktuator (Relay)
 | Aktuator | Pin Arduino Mega | Keterangan |
 |---|---|---|
-| Blower (AC Indoor) | D22 | Ke pin IN Relay. VCC Relay ke 5V, GND ke GND |
-| Exhaust Fan | D24 | Ke pin IN Relay. VCC Relay ke 5V, GND ke GND |
-| Mist Maker | D25 | Ke pin IN Relay. VCC Relay ke 5V, GND ke GND |
+| Blower AC (Evaporator / Indoor) | D22 | Ke terminal (+) Input SSR (Solid State Relay). Terminal (-) SSR ke GND Arduino. |
+| Exhaust Fan | D24 | Ke pin IN Relay mekanik biasa. VCC Relay ke 5V, GND ke GND |
+| Mist Maker | D25 | Ke terminal (+) Input SSR (Solid State Relay). Terminal (-) SSR ke GND Arduino. |
 | Kompressor AC (Start) | D26 | Ke pin IN Relay. Mengirimkan sinyal trigger (pulse) |
 | Kompressor AC (Stop) | D27 | Ke pin IN Relay. Mengirimkan sinyal trigger (pulse) |
 
