@@ -60,7 +60,7 @@ function FluidIslandNav({ activePage, onNavigate, isConnected, toggleTheme, isDa
           const isActive = activePage === item.id;
           return (
             <button key={item.id} onClick={() => onNavigate(item.id)}
-              className="relative px-4 py-2 rounded-full text-sm font-medium smooth-transition active:scale-95 group"
+              className="relative px-4 py-2 rounded-full text-sm font-medium smooth-transition active:scale-95 group cursor-pointer"
               style={{ color: isActive ? 'var(--on-surface)' : 'var(--on-surface-variant)' }}>
               {isActive && (
                 <motion.div layoutId="nav-pill" className="absolute inset-0 rounded-full"
@@ -78,7 +78,7 @@ function FluidIslandNav({ activePage, onNavigate, isConnected, toggleTheme, isDa
 
       {/* Actions */}
       <div className="flex items-center pl-4 border-l gap-2" style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 30%, transparent)' }}>
-        <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition hover:scale-110 active:scale-90 bg-black/20 border border-white/5"
+        <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center smooth-transition hover:scale-110 active:scale-90 bg-black/20 border border-white/5 cursor-pointer"
           style={{ color: 'var(--on-surface-variant)' }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--on-surface)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--on-surface-variant)'}>
@@ -286,20 +286,29 @@ function DataLogViewer() {
   }, [logType]);
 
   const downloadCSV = () => {
-    if (data.length === 0) return;
-    const header = "Waktu,CO2 (ppm),Suhu (°C),Kelembaban (%),Evaporator (°C)\n";
-    const csv = data.map(r => `${r.date},${r.co2},${r.temp},${r.hum},${r.evap}`).join("\n");
-    const blob = new Blob([header + csv], { type: 'text/csv' });
+    if (!data || data.length === 0) {
+      alert("Belum ada data log untuk diekspor.");
+      return;
+    }
+    const header = "Waktu,CO2 (ppm),Suhu (°C),Kelembaban (%),Evaporator (°C)\r\n";
+    const csv = data.map(r => `"${r.date || ''}",${r.co2 || 0},${r.temp || 0},${r.hum || 0},${r.evap || 0}`).join("\r\n");
+    const blob = new Blob(["\uFEFF" + header + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `log_${logType}.csv`; a.click();
-    URL.revokeObjectURL(url);
+    a.href = url;
+    a.setAttribute('download', `log_${logType}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 250);
   };
 
   return (
     <div className="page-fade-in flex flex-col gap-6">
-      <div className="glass-card rounded-xl overflow-hidden hover:translate-y-0 hover:scale-100">
-        <div className="p-6 border-b flex justify-between items-end flex-wrap gap-4"
+      <div className="glass-card rounded-xl overflow-hidden !transform-none hover:!transform-none active:!transform-none select-text">
+        <div className="p-6 border-b flex justify-between items-end flex-wrap gap-4 relative z-20"
           style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 10%, transparent)' }}>
           <div>
             <h2 className="text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>Cultivation Logs</h2>
@@ -307,24 +316,41 @@ function DataLogViewer() {
               Riwayat data sensor dari Sensor Node 01 — <span className="font-medium">{logLabels[logType]}</span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={downloadCSV}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-colors"
-              style={{ background: 'color-mix(in srgb, var(--primary) 10%, transparent)', color: 'var(--primary)' }}>
+          <div className="flex items-center gap-3 relative z-20">
+            <button
+              type="button"
+              onClick={downloadCSV}
+              disabled={loading || data.length === 0}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer active:scale-95 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed select-none shadow-sm relative z-20"
+              style={{
+                background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
+                color: 'var(--primary)',
+                border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)'
+              }}
+              title={data.length === 0 ? "Belum ada data untuk diekspor" : "Unduh riwayat data ke format CSV"}
+            >
               <span className="material-symbols-outlined text-base">download</span> Export CSV
             </button>
-            <div className="flex gap-1 p-1 rounded-full" style={{ background: 'var(--surface-container-high)' }}>
+            <div className="flex gap-1 p-1 rounded-full relative z-20 border border-white/5 shadow-inner" style={{ background: 'var(--surface-container-high)' }}>
               {(['2m', '1h'] as const).map(t => (
-                <button key={t} onClick={() => setLogType(t)}
-                  className="px-4 py-1.5 text-xs font-semibold rounded-full transition-all"
-                  style={{ background: logType === t ? 'var(--primary)' : 'transparent', color: logType === t ? 'var(--on-primary)' : 'var(--on-surface-variant)' }}>
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setLogType(t)}
+                  className="px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer active:scale-95 select-none relative z-20"
+                  style={{
+                    background: logType === t ? 'var(--primary)' : 'transparent',
+                    color: logType === t ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+                    boxShadow: logType === t ? '0 2px 8px color-mix(in srgb, var(--primary) 40%, transparent)' : 'none'
+                  }}
+                >
                   {t === '2m' ? '2 Menit' : '1 Jam (Avg)'}
                 </button>
               ))}
             </div>
           </div>
         </div>
-        <div className="overflow-x-auto">
+      <div className="overflow-x-auto">
           {loading ? (
             <div className="p-16 flex flex-col items-center gap-3" style={{ color: 'var(--on-surface-variant)' }}>
               <span className="material-symbols-outlined text-4xl animate-spin">sync</span>
