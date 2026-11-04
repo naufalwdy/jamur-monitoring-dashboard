@@ -208,60 +208,6 @@ function KpiCard({ label, value, unit, icon, iconColor, accent, trend, trendLabe
   );
 }
 
-// === Actuator Card ===
-function ActuatorCard({ id, title, icon, act, onCommand }: {
-  id: string; title: string; icon: string;
-  act: ActuatorData; onCommand: (id: string, mode: 'auto' | 'manual', state: boolean) => void;
-}) {
-  const isAuto = act.mode === 'auto';
-  const isOn = act.state;
-
-  return (
-    <div className="rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden smooth-transition hover:scale-[1.01]"
-      style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 50%, transparent)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, var(--outline-variant) 15%, transparent)', boxShadow: 'inset 0 1px 0 0 color-mix(in srgb, var(--surface-container-lowest) 40%, transparent)' }}>
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: isOn ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface-variant)', color: isOn ? 'var(--primary)' : 'var(--on-surface-variant)' }}>
-            <span className="material-symbols-outlined text-[18px]">{icon}</span>
-          </div>
-          <span className="font-medium" style={{ color: 'var(--on-surface)' }}>{title}</span>
-        </div>
-        <span className={`text-xs px-2 py-1 rounded-full font-semibold${isOn ? ' status-on' : ''}`}
-          style={{ background: isOn ? 'var(--primary)' : 'var(--surface-variant)', color: isOn ? 'var(--on-primary)' : 'var(--on-surface-variant)' }}>
-          {isOn ? 'ON' : 'OFF'}
-        </span>
-      </div>
-
-      <div className="flex justify-between items-center pt-2 border-t" style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 12%, transparent)' }}>
-        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--on-surface-variant)' }}>Mode</span>
-        <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: 'var(--surface-container)' }}>
-          <button onClick={() => onCommand(id, 'auto', isOn)}
-            className="px-3 py-1 text-xs rounded-md smooth-transition font-semibold hover:scale-105 active:scale-95"
-            style={{ background: isAuto ? 'var(--surface-container-lowest)' : 'transparent', color: isAuto ? 'var(--primary)' : 'var(--on-surface-variant)', boxShadow: isAuto ? '0 2px 4px rgba(0,0,0,0.1)' : 'none' }}>
-            Auto
-          </button>
-          <button onClick={() => onCommand(id, 'manual', isOn)}
-            className="px-3 py-1 text-xs rounded-md smooth-transition font-semibold hover:scale-105 active:scale-95"
-            style={{ background: !isAuto ? 'var(--surface-container-lowest)' : 'transparent', color: !isAuto ? 'var(--primary)' : 'var(--on-surface-variant)', boxShadow: !isAuto ? '0 2px 4px rgba(0,0,0,0.1)' : 'none' }}>
-            Manual
-          </button>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center">
-        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: isAuto ? 'var(--on-surface-variant)' : 'var(--on-surface)' }}>Power</span>
-        <button onClick={() => !isAuto && onCommand(id, 'manual', !isOn)} disabled={isAuto}
-          className="relative inline-flex h-6 w-11 items-center rounded-full smooth-transition active:scale-90"
-          style={{ background: isOn ? (isAuto ? 'color-mix(in srgb, var(--primary) 50%, gray)' : 'var(--primary)') : 'var(--surface-container-high)', cursor: isAuto ? 'not-allowed' : 'pointer', opacity: isAuto ? 0.6 : 1 }}>
-          <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm"
-            style={{ transform: isOn ? 'translateX(24px)' : 'translateX(4px)' }} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // === Full Cultivation Logs Viewer ===
 function DataLogViewer() {
   const [data, setData] = useState<LogRow[]>([]);
@@ -307,8 +253,8 @@ function DataLogViewer() {
       // Urutkan dari yang terbaru ke terlama
       allRows.reverse();
 
-      const header = "Waktu,CO2 (ppm),Suhu (°C),Kelembaban (%),Evaporator (°C)\r\n";
-      const csv = allRows.map(r => `"${r.date || ''}",${r.co2 || 0},${r.temp || 0},${r.hum || 0},${r.evap || 0}`).join("\r\n");
+      const header = "Waktu,Suhu (°C),Kelembaban (%)\r\n";
+      const csv = allRows.map(r => `"${r.date || ''}",${r.temp || 0},${r.hum || 0}`).join("\r\n");
       const blob = new Blob(["\uFEFF" + header + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -415,7 +361,7 @@ function DataLogViewer() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 30%, transparent)' }}>
-                  {['Timestamp', 'CO₂ (ppm)', 'Suhu (°C)', 'Kelembaban (%)', 'Evap (°C)'].map((h, i) => (
+                  {['Timestamp', 'Suhu (°C)', 'Kelembaban (%)'].map((h, i) => (
                     <th key={i} className={`py-3 px-6 text-xs font-semibold uppercase tracking-wider ${i > 0 ? 'text-right' : ''}`}
                       style={{ color: 'var(--on-surface-variant)' }}>{h}</th>
                   ))}
@@ -428,10 +374,8 @@ function DataLogViewer() {
                     onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-container-lowest) 50%, transparent)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                     <td className="py-3 px-6 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
-                    <td className="py-3 px-6 text-right font-medium">{row.co2}</td>
                     <td className="py-3 px-6 text-right font-medium">{row.temp}</td>
                     <td className="py-3 px-6 text-right font-medium">{row.hum}</td>
-                    <td className="py-3 px-6 text-right" style={{ color: 'var(--on-surface-variant)' }}>{row.evap}</td>
                   </tr>
                 ))}
               </tbody>
@@ -472,8 +416,6 @@ function SetpointsViewer({ currentSetpoints, onSave }: { currentSetpoints: Setpo
   const pairs = [
     { title: 'Temperature', icon: 'device_thermostat', iconColor: 'var(--secondary)', unit: '°C', minKey: 'tempMin' as keyof Setpoints, maxKey: 'tempMax' as keyof Setpoints },
     { title: 'Humidity', icon: 'water_drop', iconColor: 'var(--tertiary)', unit: '%', minKey: 'humMin' as keyof Setpoints, maxKey: 'humMax' as keyof Setpoints },
-    { title: 'CO₂ Concentration', icon: 'air', iconColor: 'var(--primary)', unit: 'ppm', minKey: 'co2Min' as keyof Setpoints, maxKey: 'co2Max' as keyof Setpoints },
-    { title: 'Evap Temperature', icon: 'ac_unit', iconColor: 'var(--primary-fixed-dim)', unit: '°C', minKey: 'evapMin' as keyof Setpoints, maxKey: 'evapMax' as keyof Setpoints },
   ];
 
   return (
@@ -537,7 +479,7 @@ function SetpointsViewer({ currentSetpoints, onSave }: { currentSetpoints: Setpo
 // === Main Dashboard Component ===
 export default function RealtimeDashboard() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
-  const [activeKpi, setActiveKpi] = useState<keyof SensorsData>('co2');
+  const [activeKpi, setActiveKpi] = useState<keyof SensorsData>('temp');
   const [isAdmin, setIsAdmin] = useState(false);
 
   // To prevent glitching back to auto instantly after a local command
@@ -649,12 +591,6 @@ export default function RealtimeDashboard() {
     return () => { unsubscribeState(); unsubConn(); unsubLog(); };
   }, []);
 
-  const sendCommand = (id: string, mode: 'auto' | 'manual', state: boolean) => {
-    (lastCommandTime.current as any)[id + '_pending'] = { mode, state };
-    setActuators(prev => ({ ...prev, [id]: { mode, state } }));
-    push(ref(db, 'commands'), `CMD,${id},${mode},${state ? 1 : 0}`);
-  };
-
   const saveSetpoints = (newSp: Setpoints) => {
     setSetpoints(newSp);
     set(ref(db, 'state/setpoints'), newSp);
@@ -664,9 +600,6 @@ export default function RealtimeDashboard() {
   // Status helpers use the module-level generic getStatus()
   const tempStatus = getStatus(sensors.temp, setpoints.tempMin, setpoints.tempMax);
   const humStatus  = getStatus(sensors.hum,  setpoints.humMin,  setpoints.humMax);
-  const co2Status  = getStatus(sensors.co2,  setpoints.co2Min,  setpoints.co2Max);
-  const evapStatus = getStatus(sensors.evap, setpoints.evapMin, setpoints.evapMax);
-
   // Memoized chart data: only recomputed when recentLogs or activeKpi changes
   const formattedChartData = useMemo(() => {
     const chronological = recentLogs.slice(0, 20).reverse();
@@ -703,11 +636,9 @@ export default function RealtimeDashboard() {
               {/* Asymmetrical Bento Grid */}
               <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-min gap-4 md:gap-6">
                 
-                <div className="md:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  <KpiCard label="CO₂ Level" value={Math.round(sensors.co2).toString()} unit="ppm" icon="air" iconColor="var(--primary)" accent="var(--primary)" status={co2Status} currentVal={sensors.co2} min={setpoints.co2Min} max={setpoints.co2Max} isActive={activeKpi === 'co2'} onClick={() => setActiveKpi('co2')} />
+                <div className="md:col-span-12 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                   <KpiCard label="Room Temp" value={sensors.temp.toFixed(1)} unit="°C" icon="device_thermostat" iconColor="var(--secondary)" accent="var(--secondary)" status={tempStatus} currentVal={sensors.temp} min={setpoints.tempMin} max={setpoints.tempMax} isActive={activeKpi === 'temp'} onClick={() => setActiveKpi('temp')} />
                   <KpiCard label="Humidity" value={Math.round(sensors.hum).toString()} unit="%" icon="water_drop" iconColor="var(--tertiary)" accent="var(--tertiary)" status={humStatus} currentVal={sensors.hum} min={setpoints.humMin} max={setpoints.humMax} isActive={activeKpi === 'hum'} onClick={() => setActiveKpi('hum')} />
-                  <KpiCard label="Evaporator" value={sensors.evap.toFixed(1)} unit="°C" icon="ac_unit" iconColor="var(--primary-fixed-dim)" accent="var(--primary-fixed)" status={evapStatus} currentVal={sensors.evap} min={setpoints.evapMin} max={setpoints.evapMax} isActive={activeKpi === 'evap'} onClick={() => setActiveKpi('evap')} />
                 </div>
                 
                 {/* === Actuator Status Grid === */}
@@ -732,7 +663,7 @@ export default function RealtimeDashboard() {
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider" style={{ color: data.state ? act.color : 'var(--on-surface-variant)' }}>{data.state ? 'ON' : 'OFF'}</span>
                             <span className="w-1 h-1 rounded-full bg-current opacity-30"></span>
-                            <span className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--on-surface-variant)' }}>{data.mode}</span>
+                            <span className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--on-surface-variant)' }}>AUTO</span>
                           </div>
                         </div>
                       </div>
@@ -775,7 +706,7 @@ export default function RealtimeDashboard() {
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr style={{ background: 'color-mix(in srgb, var(--surface-container) 40%, transparent)' }}>
-                            {['Timestamp', 'CO₂ (ppm)', 'Suhu (°C)', 'Kelembaban (%)', 'Evap (°C)'].map((h, i) => (
+                            {['Timestamp', 'Suhu (°C)', 'Kelembaban (%)'].map((h, i) => (
                               <th key={i} className={`py-2.5 px-5 text-[10px] font-semibold uppercase tracking-widest ${i > 0 ? 'text-right' : ''}`} style={{ color: 'var(--on-surface-variant)' }}>{h}</th>
                             ))}
                           </tr>
@@ -789,10 +720,8 @@ export default function RealtimeDashboard() {
                               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                             >
                               <td className="py-3 px-5 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
-                              <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--primary)' }}>{row.co2}</td>
                               <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--secondary)' }}>{row.temp}</td>
                               <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--tertiary)' }}>{row.hum}</td>
-                              <td className="py-3 px-5 text-right text-sm font-medium" style={{ color: 'var(--on-surface-variant)' }}>{row.evap}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -818,7 +747,7 @@ export default function RealtimeDashboard() {
                       </div>
                     </div>
                     <div className="flex gap-1 p-1 rounded-full" style={{ background: 'color-mix(in srgb, var(--surface-container) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--outline-variant) 15%, transparent)' }}>
-                      {(['co2', 'temp', 'hum', 'evap'] as const).map(k => (
+                      {(['temp', 'hum'] as const).map(k => (
                         <button key={k} onClick={() => setActiveKpi(k)}
                           className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider smooth-transition active:scale-95"
                           style={{ background: activeKpi === k ? PARAM_COLORS[k] : 'transparent', color: activeKpi === k ? '#fff' : 'var(--on-surface-variant)', boxShadow: activeKpi === k ? `0 2px 8px color-mix(in srgb, ${PARAM_COLORS[k]} 40%, transparent)` : 'none' }}
@@ -898,21 +827,7 @@ export default function RealtimeDashboard() {
                     </button>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Actuators Bento Stack */}
-                    <div className="glass-card rounded-xl p-6 h-fit">
-                      <div className="mb-6">
-                        <h2 className="text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>Manual Override</h2>
-                        <p className="text-sm mt-1" style={{ color: 'var(--on-surface-variant)' }}>Kontrol langsung terhadap sistem kelistrikan dan relay aktuator.</p>
-                      </div>
-                      <div className="grid grid-cols-1 gap-4">
-                        <ActuatorCard id="mistmaker" title="Mist Maker" icon="water" act={actuators.mistmaker} onCommand={sendCommand} />
-                        <ActuatorCard id="blower" title="Circulation" icon="mode_fan" act={actuators.blower} onCommand={sendCommand} />
-                        <ActuatorCard id="exhaust" title="Exhaust Fan" icon="wind_power" act={actuators.exhaust} onCommand={sendCommand} />
-                        <ActuatorCard id="compressor" title="Compressor" icon="ac_unit" act={actuators.compressor} onCommand={sendCommand} />
-                      </div>
-                    </div>
-
+                  <div className="w-full">
                     <SetpointsViewer currentSetpoints={setpoints} onSave={saveSetpoints} />
                   </div>
                 </div>
