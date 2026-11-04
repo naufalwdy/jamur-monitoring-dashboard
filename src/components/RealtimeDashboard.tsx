@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ref, onValue, set, push, query, limitToLast } from "firebase/database";
+import { ref, onValue, set, push, query, limitToLast, get } from "firebase/database";
 import { db } from "../lib/firebase";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -266,14 +266,16 @@ function ActuatorCard({ id, title, icon, act, onCommand }: {
 function DataLogViewer() {
   const [data, setData] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [logType, setLogType] = useState<'2m' | '1h'>('2m');
+  const [displayLimit, setDisplayLimit] = useState<number>(200);
   const [error, setError] = useState('');
 
   const logLabels: Record<string, string> = { '2m': 'Per 2 Menit', '1h': 'Rata-rata 1 Jam' };
 
   useEffect(() => {
     setLoading(true); setError('');
-    const logRef = query(ref(db, 'logs/' + logType), limitToLast(200));
+    const logRef = query(ref(db, 'logs/' + logType), limitToLast(displayLimit));
     const unsubscribe = onValue(logRef, (snapshot) => {
       setLoading(false);
       if (snapshot.exists()) {
@@ -283,26 +285,46 @@ function DataLogViewer() {
       } else { setData([]); setError('Data masih kosong. Alat perlu terhubung dan berjalan.'); }
     }, (err) => { setLoading(false); setError(err.message); });
     return () => unsubscribe();
-  }, [logType]);
+  }, [logType, displayLimit]);
 
-  const downloadCSV = () => {
-    if (!data || data.length === 0) {
-      alert("Belum ada data log untuk diekspor.");
-      return;
+  const downloadCSV = async () => {
+    try {
+      setExporting(true);
+      // Mengambil seluruh data dari Firebase tanpa batasan limitToLast
+      const snapshot = await get(ref(db, 'logs/' + logType));
+      
+      if (!snapshot.exists()) {
+        alert("Belum ada data log untuk diekspor.");
+        setExporting(false);
+        return;
+      }
+
+      const allRows: LogRow[] = [];
+      snapshot.forEach((child) => {
+        allRows.push(child.val());
+      });
+
+      // Urutkan dari yang terbaru ke terlama
+      allRows.reverse();
+
+      const header = "Waktu,CO2 (ppm),Suhu (°C),Kelembaban (%),Evaporator (°C)\r\n";
+      const csv = allRows.map(r => `"${r.date || ''}",${r.co2 || 0},${r.temp || 0},${r.hum || 0},${r.evap || 0}`).join("\r\n");
+      const blob = new Blob(["\uFEFF" + header + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.setAttribute('download', `log_${logType}_semua_${allRows.length}_data_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 250);
+    } catch (err: any) {
+      alert("Gagal mengunduh data: " + (err?.message || err));
+    } finally {
+      setExporting(false);
     }
-    const header = "Waktu,CO2 (ppm),Suhu (°C),Kelembaban (%),Evaporator (°C)\r\n";
-    const csv = data.map(r => `"${r.date || ''}",${r.co2 || 0},${r.temp || 0},${r.hum || 0},${r.evap || 0}`).join("\r\n");
-    const blob = new Blob(["\uFEFF" + header + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.setAttribute('download', `log_${logType}_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 250);
   };
 
   return (
@@ -314,23 +336,51 @@ function DataLogViewer() {
             <h2 className="text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>Cultivation Logs</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--on-surface-variant)' }}>
               Riwayat data sensor dari Sensor Node 01 — <span className="font-medium">{logLabels[logType]}</span>
+              <span className="ml-2 text-xs opacity-75">(Menampilkan {data.length} data terakhir di layar)</span>
             </p>
           </div>
-          <div className="flex items-center gap-3 relative z-20">
+          <div className="flex items-center gap-3 relative z-20 flex-wrap">
+            {/* Pilihan limit tampilan tabel */}
+            <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--on-surface-variant)' }}>
+              <span className="hidden sm:inline">Tampil:</span>
+              <div className="flex gap-0.5 p-0.5 rounded-full border border-white/5" style={{ background: 'var(--surface-container-high)' }}>
+                {[200, 500, 1000].map(lim => (
+                  <button
+                    key={lim}
+                    type="button"
+                    onClick={() => setDisplayLimit(lim)}
+                    className="px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all cursor-pointer active:scale-95"
+                    style={{
+                      background: displayLimit === lim ? 'var(--secondary)' : 'transparent',
+                      color: displayLimit === lim ? 'var(--on-secondary)' : 'var(--on-surface-variant)'
+                    }}
+                  >
+                    {lim}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tombol Export Seluruh CSV */}
             <button
               type="button"
               onClick={downloadCSV}
-              disabled={loading || data.length === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer active:scale-95 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed select-none shadow-sm relative z-20"
+              disabled={exporting || loading}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer active:scale-95 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed select-none shadow-sm relative z-20"
               style={{
                 background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
                 color: 'var(--primary)',
                 border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)'
               }}
-              title={data.length === 0 ? "Belum ada data untuk diekspor" : "Unduh riwayat data ke format CSV"}
+              title="Unduh SELURUH data riwayat dari database tanpa batasan (format CSV)"
             >
-              <span className="material-symbols-outlined text-base">download</span> Export CSV
+              <span className={`material-symbols-outlined text-base ${exporting ? 'animate-spin' : ''}`}>
+                {exporting ? 'sync' : 'download'}
+              </span>
+              {exporting ? 'Mengunduh...' : 'Export Semua CSV'}
             </button>
+
+            {/* Pilihan Interval 2 Menit / 1 Jam */}
             <div className="flex gap-1 p-1 rounded-full relative z-20 border border-white/5 shadow-inner" style={{ background: 'var(--surface-container-high)' }}>
               {(['2m', '1h'] as const).map(t => (
                 <button
