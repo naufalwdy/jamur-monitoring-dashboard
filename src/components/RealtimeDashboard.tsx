@@ -11,7 +11,24 @@ interface SensorsData { co2: number; temp: number; hum: number; evap: number; }
 interface ActuatorData { mode: 'auto' | 'manual'; state: boolean; }
 interface ActuatorsData { blower: ActuatorData; compressor: ActuatorData; exhaust: ActuatorData; mistmaker: ActuatorData; }
 interface Setpoints { tempMin: number; tempMax: number; humMin: number; humMax: number; co2Min: number; co2Max: number; evapMin: number; evapMax: number; }
-interface LogRow { date: string; co2: string; temp: string; hum: string; evap: string; }
+interface LogRow {
+  date: string;
+  temp: number | string;
+  hum: number | string;
+  co2?: number | string;
+  evap?: number | string;
+  comp?: number | string | boolean;
+  mist?: number | string | boolean;
+  exhaust?: number | string | boolean;
+  blower?: number | string | boolean;
+}
+
+const formatActuator = (val: any): string => {
+  if (val === undefined || val === null || val === '') return '-';
+  if (val === 1 || val === '1' || val === true || String(val).toUpperCase() === 'ON') return 'ON';
+  if (val === 0 || val === '0' || val === false || String(val).toUpperCase() === 'OFF') return 'OFF';
+  return String(val);
+};
 
 type Page = 'dashboard' | 'logs' | 'admin';
 
@@ -253,8 +270,8 @@ function DataLogViewer() {
       // Urutkan dari yang terbaru ke terlama
       allRows.reverse();
 
-      const header = "Waktu,Suhu (°C),Kelembaban (%)\r\n";
-      const csv = allRows.map(r => `"${r.date || ''}",${r.temp || 0},${r.hum || 0}`).join("\r\n");
+      const header = "Waktu,Suhu (°C),Kelembaban (%),Kompresor,Mist Maker,Exhaust,Blower\r\n";
+      const csv = allRows.map(r => `"${r.date || ''}",${r.temp || 0},${r.hum || 0},${formatActuator(r.comp)},${formatActuator(r.mist)},${formatActuator(r.exhaust)},${formatActuator(r.blower)}`).join("\r\n");
       const blob = new Blob(["\uFEFF" + header + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -361,23 +378,49 @@ function DataLogViewer() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr style={{ background: 'color-mix(in srgb, var(--surface-container-lowest) 30%, transparent)' }}>
-                  {['Timestamp', 'Suhu (°C)', 'Kelembaban (%)'].map((h, i) => (
+                  {['Timestamp', 'Suhu (°C)', 'Kelembaban (%)', 'Kompresor', 'Mist Maker', 'Exhaust', 'Blower'].map((h, i) => (
                     <th key={i} className={`py-3 px-6 text-xs font-semibold uppercase tracking-wider ${i > 0 ? 'text-right' : ''}`}
                       style={{ color: 'var(--on-surface-variant)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody style={{ color: 'var(--on-surface)' }}>
-                {data.map((row, i) => (
-                  <tr key={i} className="transition-colors border-t"
-                    style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 8%, transparent)' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-container-lowest) 50%, transparent)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                    <td className="py-3 px-6 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
-                    <td className="py-3 px-6 text-right font-medium">{row.temp}</td>
-                    <td className="py-3 px-6 text-right font-medium">{row.hum}</td>
-                  </tr>
-                ))}
+                {data.map((row, i) => {
+                  const compVal = formatActuator(row.comp);
+                  const mistVal = formatActuator(row.mist);
+                  const exhaustVal = formatActuator(row.exhaust);
+                  const blowerVal = formatActuator(row.blower);
+                  return (
+                    <tr key={i} className="transition-colors border-t"
+                      style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 8%, transparent)' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--surface-container-lowest) 50%, transparent)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                      <td className="py-3 px-6 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
+                      <td className="py-3 px-6 text-right font-medium">{row.temp}</td>
+                      <td className="py-3 px-6 text-right font-medium">{row.hum}</td>
+                      <td className="py-3 px-6 text-right">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${compVal === 'ON' ? 'text-emerald-400 bg-emerald-500/15' : compVal === 'OFF' ? 'text-zinc-400 bg-zinc-500/15' : 'text-zinc-500'}`}>
+                          {compVal}
+                        </span>
+                      </td>
+                      <td className="py-3 px-6 text-right">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${mistVal === 'ON' ? 'text-emerald-400 bg-emerald-500/15' : mistVal === 'OFF' ? 'text-zinc-400 bg-zinc-500/15' : 'text-zinc-500'}`}>
+                          {mistVal}
+                        </span>
+                      </td>
+                      <td className="py-3 px-6 text-right">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${exhaustVal === 'ON' ? 'text-emerald-400 bg-emerald-500/15' : exhaustVal === 'OFF' ? 'text-zinc-400 bg-zinc-500/15' : 'text-zinc-500'}`}>
+                          {exhaustVal}
+                        </span>
+                      </td>
+                      <td className="py-3 px-6 text-right">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${blowerVal === 'ON' ? 'text-emerald-400 bg-emerald-500/15' : blowerVal === 'OFF' ? 'text-zinc-400 bg-zinc-500/15' : 'text-zinc-500'}`}>
+                          {blowerVal}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -629,7 +672,7 @@ export default function RealtimeDashboard() {
                   Live Telemetry
                 </motion.div>
                 <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-extrabold tracking-tighter" style={{ color: 'var(--on-surface)' }}>
-                  Cultivation Core
+                  Monitoring jamur
                 </motion.h1>
               </div>
 
@@ -706,24 +749,34 @@ export default function RealtimeDashboard() {
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr style={{ background: 'color-mix(in srgb, var(--surface-container) 40%, transparent)' }}>
-                            {['Timestamp', 'Suhu (°C)', 'Kelembaban (%)'].map((h, i) => (
+                            {['Timestamp', 'Suhu (°C)', 'Kelembaban (%)', 'Kompresor', 'Mist Maker', 'Exhaust', 'Blower'].map((h, i) => (
                               <th key={i} className={`py-2.5 px-5 text-[10px] font-semibold uppercase tracking-widest ${i > 0 ? 'text-right' : ''}`} style={{ color: 'var(--on-surface-variant)' }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody style={{ color: 'var(--on-surface)' }}>
-                          {recentLogs.slice(0, 5).map((row, i) => (
-                            <tr key={i}
-                              className="border-t smooth-transition"
-                              style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 8%, transparent)' }}
-                              onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--primary) 4%, transparent)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                            >
-                              <td className="py-3 px-5 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
-                              <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--secondary)' }}>{row.temp}</td>
-                              <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--tertiary)' }}>{row.hum}</td>
-                            </tr>
-                          ))}
+                          {recentLogs.slice(0, 5).map((row, i) => {
+                            const compVal = formatActuator(row.comp);
+                            const mistVal = formatActuator(row.mist);
+                            const exhaustVal = formatActuator(row.exhaust);
+                            const blowerVal = formatActuator(row.blower);
+                            return (
+                              <tr key={i}
+                                className="border-t smooth-transition"
+                                style={{ borderColor: 'color-mix(in srgb, var(--outline-variant) 8%, transparent)' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--primary) 4%, transparent)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                              >
+                                <td className="py-3 px-5 font-mono text-xs" style={{ color: 'var(--on-surface-variant)' }}>{row.date}</td>
+                                <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--secondary)' }}>{row.temp}</td>
+                                <td className="py-3 px-5 text-right font-bold text-sm" style={{ color: 'var(--tertiary)' }}>{row.hum}</td>
+                                <td className="py-3 px-5 text-right text-xs font-semibold">{compVal}</td>
+                                <td className="py-3 px-5 text-right text-xs font-semibold">{mistVal}</td>
+                                <td className="py-3 px-5 text-right text-xs font-semibold">{exhaustVal}</td>
+                                <td className="py-3 px-5 text-right text-xs font-semibold">{blowerVal}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
